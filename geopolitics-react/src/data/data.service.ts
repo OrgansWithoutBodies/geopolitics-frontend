@@ -1,4 +1,4 @@
-import { TimeSpace } from "../types";
+import { KonvaSpace, NodeID, ObjV2, TimeSpace } from "../types";
 import { dataStore, DataStore } from "./data.store";
 
 export class DataService {
@@ -18,6 +18,21 @@ export class DataService {
       };
     });
   }
+
+  public moveNode(id: NodeID, newPosition: ObjV2<KonvaSpace>) {
+    this.dataStore.update((state) => {
+      const mutableNodeLookup = {
+        ...state.networkNodes,
+        [id]: {
+          ...state.networkNodes[id],
+          renderedProps: { position: newPosition },
+        },
+      };
+
+      return { ...state, networkNodes: mutableNodeLookup };
+    });
+  }
+
   constructor(private dataStore: DataStore) {}
 }
 

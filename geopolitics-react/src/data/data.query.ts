@@ -1,5 +1,6 @@
 import { Query } from "@datorama/akita";
 import { combineLatest, map, Observable } from "rxjs";
+import { forceDirectedGraph } from "../layoutNetwork";
 import {
   periodIsSegmentGuard,
   HexStr,
@@ -10,9 +11,49 @@ import {
   TimelineSpace,
   TimeSpace,
   PeriodOrSingleton,
+  RenderableNetworkEdge,
+  RawNetwork,
+  AdjacencyMatrix,
+  RenderableNetworkNode,
+  Matrix,
 } from "../types";
 import { DataState, DataStore, dataStore } from "./data.store";
+
+const createLoL = (dim: number): Matrix<0> =>
+  [...Array.from({ length: dim }).keys()].map(
+    () => [...Array.from({ length: dim }).keys()].fill(0) as 0[]
+  );
+const rawNetworkToAdjMat = (network: RawNetwork): AdjacencyMatrix => {
+  const numNodes = network.nodes.length;
+
+  const adjMat: AdjacencyMatrix = createLoL(numNodes);
+
+  network.nodes.forEach(({ id }, ii) => {
+    const edgesStartingFromThisNode = network.edges
+      .map((edge, ii) => {
+        return { ...edge, index: ii };
+      })
+      .filter((edge) => {
+        return edge.origin === id;
+      });
+    const slice = adjMat[ii];
+    edgesStartingFromThisNode.forEach((edge) => {
+      slice[edge.index] = 1;
+    });
+  });
+
+  return adjMat;
+};
+// const adjMatToRawNetwork = (adjMat: AdjacencyMatrix): RawNetwork => {
+//   const numNodes = adjMat.length;
+//   const nodes = new Array(numNodes).keys();
+//   const edges = [];
+//   return { nodes, edges };
+// };
+
 const getRandomColor = (): HexStr => {
+  // return "#FFFFFF";
+
   const channelSize = 16;
   const charCode = new Array(6)
     .fill(0)
@@ -89,6 +130,60 @@ export class DataQuery extends Query<DataState> {
 
   private unfilteredEvents = this.select("events");
 
+  public networkNodes = this.select("networkNodes");
+  public networkNodesArray = this.networkNodes.pipe(
+    map((nodes) => Object.values(nodes))
+  );
+  public networkEdges = this.select("networkEdges");
+
+  public rawNetwork: Observable<RawNetwork> = combineLatest([
+    this.networkNodesArray,
+    this.networkEdges,
+  ]).pipe(
+    map(([nodes, edges]) => {
+      return { nodes, edges };
+    })
+  );
+
+  public adjMat: Observable<AdjacencyMatrix> = this.rawNetwork.pipe(
+    map((network) => rawNetworkToAdjMat(network))
+  );
+
+  public renderableNetworkNodes: Observable<RenderableNetworkNode[]> =
+    combineLatest([this.networkNodesArray, this.adjMat]).pipe(
+      map(([nodes, adjMat]) => {
+        //
+        const placements = forceDirectedGraph({ G: adjMat, H: 100 });
+        return nodes.map((node, ii) => {
+          return {
+            ...node,
+            renderedProps: {
+              position: { ...placements[ii] },
+              color: getRandomColor(),
+            },
+          };
+        });
+      })
+    );
+
+  public renderableEdges: Observable<RenderableNetworkEdge[]> = combineLatest([
+    this.renderableNetworkNodes,
+    this.networkEdges,
+    this.adjMat,
+  ]).pipe(
+    map(([nodes, edges]) => {
+      return edges.map((edge) => {
+        return {
+          ...edge,
+          renderedProps: {
+            originPosition: nodes[edge.origin].renderedProps.position,
+            targetPosition: nodes[edge.target].renderedProps.position,
+          },
+        };
+      });
+    })
+  );
+
   public initialDateFilter = this.select("initialDateFilter");
   public finalDateFilter = this.select("finalDateFilter");
 
@@ -155,7 +250,11 @@ export class DataQuery extends Query<DataState> {
   );
 
   public earliestEventStart = this.eventsSortedByStartDate.pipe(
-    map(([{ eventTime }]) => {
+    map((events) => {
+      if (events.length === 0) {
+        return null;
+      }
+      const [{ eventTime }] = events;
       const isSegment = periodIsSegmentGuard(eventTime);
       return isSegment ? eventTime.start : eventTime;
     })
@@ -163,6 +262,9 @@ export class DataQuery extends Query<DataState> {
 
   public latestEventEnd = this.eventsSortedByEndDate.pipe(
     map((events) => {
+      if (events.length === 0) {
+        return null;
+      }
       const { eventTime } = events[events.length - 1];
       const isSegment = periodIsSegmentGuard(eventTime);
       return isSegment ? eventTime.end : eventTime;
@@ -189,6 +291,9 @@ export class DataQuery extends Query<DataState> {
 
   public unfilteredLatestEventEnd = this.unfilteredEventsSortedByEndDate.pipe(
     map((events) => {
+      if (events.length === 0) {
+        return null;
+      }
       const { eventTime } = events[events.length - 1];
       const isSegment = periodIsSegmentGuard(eventTime);
       return isSegment ? eventTime.end : eventTime;
@@ -202,6 +307,9 @@ export class DataQuery extends Query<DataState> {
     this.finalDateFilterWithFallback,
   ]).pipe(
     map(([events, earliest, latest]) => {
+      if (events.length === 0 || !earliest || !latest) {
+        return [];
+      }
       const positioner = DataQuery.buildEventPositioner(earliest, latest);
       return events.map((event) => {
         return {

@@ -12,6 +12,7 @@ import {
 } from "react-konva";
 import { DataQuery } from "./data/data.query";
 import { dataService } from "./data/data.service";
+import { orderedNumbers } from "./orderedNumbers";
 import {
   TimelineContext,
   TimelineVariables,
@@ -24,21 +25,16 @@ import {
   RenderableEvent,
   TimelineSpace,
   TimeSpace,
+  ObjV2,
 } from "./types";
 import { useData } from "./useAkita";
-
-// TODO flexible enough for non-hardcoded values (useContext?)
-
-const orderedNumbers = (length: number): number[] => [
-  ...Array.from({ length }).keys(),
-];
 
 export function TimelineBackground({
   lastDate,
   firstDate,
 }: {
-  lastDate: number;
-  firstDate: number;
+  lastDate: TimeSpace;
+  firstDate: TimeSpace;
 }): JSX.Element {
   // TODO put the dates these markers correspond to? toggleable?
   const {
@@ -235,20 +231,36 @@ const formatDates = ({ eventTime }: HistoricalEvent): string => {
 };
 
 // function timelineContextProvider = Contextprop
-export function Timeline(): JSX.Element {
+export function Timeline({ stageSize }: { stageSize: ObjV2 }): JSX.Element {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const [{ renderReadyEvents: events, earliestEventStart, latestEventEnd }] =
-    useData(["renderReadyEvents", "earliestEventStart", "latestEventEnd"]);
+  const [
+    {
+      renderReadyEvents: events,
+      finalDateFilterWithFallback: latestEventEnd,
+      initialDateFilterWithFallback: earliestEventStart,
+    },
+  ] = useData([
+    "renderReadyEvents",
+    "finalDateFilterWithFallback",
+
+    "initialDateFilterWithFallback",
+  ]);
 
   return (
     <TimelineContext.Provider value={TimelineVariables}>
-      <FilterEvents />
-      <Stage width={500 * 2} height={300} style={{ backgroundColor: "white" }}>
+      {/* <FilterEvents /> */}
+      <Stage
+        width={stageSize.x}
+        height={stageSize.y}
+        style={{ backgroundColor: "white" }}
+      >
         <Layer x={TimelineVariables.timelineLeftPadding}>
-          <TimelineBackground
-            lastDate={latestEventEnd || -1}
-            firstDate={earliestEventStart || -1}
-          />
+          {latestEventEnd && earliestEventStart && (
+            <TimelineBackground
+              lastDate={latestEventEnd}
+              firstDate={earliestEventStart}
+            />
+          )}
           {events && (
             <TimelineEvents
               events={events}
@@ -302,39 +314,58 @@ export function FilterEvents(): JSX.Element {
     "unfilteredLatestEventEnd",
     "numberEventsAfterFilter",
   ]);
-  console.log("TEST123", numberEventsAfterFilter);
   return (
     <>
-      <div>
-        <div>Start Filter</div>
-        <input
-          type="number"
-          min={earliestEventStart}
-          max={latestEventEnd}
-          value={
-            initialDateFilter !== null ? initialDateFilter : earliestEventStart
-          }
-          onChange={(event) =>
-            dataService.setInitialDateFilter(
-              Number.parseInt(event.target.value) as TimeSpace
-            )
-          }
-        />
-      </div>
-      <div>
-        <div>End Filter</div>
-        <input
-          type="number"
-          min={earliestEventStart}
-          max={latestEventEnd}
-          value={finalDateFilter !== null ? finalDateFilter : latestEventEnd}
-          onChange={(event) =>
-            dataService.setFinalDateFilter(
-              Number.parseInt(event.target.value) as TimeSpace
-            )
-          }
-        />
-      </div>
+      {latestEventEnd && earliestEventStart && (
+        <>
+          <div>
+            <div>Start Filter</div>
+            <input
+              type="number"
+              min={earliestEventStart}
+              max={latestEventEnd}
+              value={
+                initialDateFilter !== null
+                  ? initialDateFilter
+                  : earliestEventStart
+              }
+              onChange={(event) => {
+                const inputValue = Number.parseInt(
+                  event.target.value
+                ) as TimeSpace;
+                if (
+                  inputValue >= earliestEventStart &&
+                  inputValue <= latestEventEnd
+                ) {
+                  dataService.setInitialDateFilter(inputValue);
+                }
+              }}
+            />
+          </div>
+          <div>
+            <div>End Filter</div>
+            <input
+              type="number"
+              min={earliestEventStart}
+              max={latestEventEnd}
+              value={
+                finalDateFilter !== null ? finalDateFilter : latestEventEnd
+              }
+              onChange={(event) => {
+                const inputValue = Number.parseInt(
+                  event.target.value
+                ) as TimeSpace;
+                if (
+                  inputValue >= earliestEventStart &&
+                  inputValue <= latestEventEnd
+                ) {
+                  dataService.setFinalDateFilter(inputValue);
+                }
+              }}
+            />
+          </div>
+        </>
+      )}{" "}
     </>
   );
 }

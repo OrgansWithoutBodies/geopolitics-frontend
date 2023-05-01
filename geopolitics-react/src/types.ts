@@ -1,4 +1,6 @@
+export type ArrV2<T = number> = [T, T];
 export type ArrV3<T = number> = [T, T, T];
+export type ObjV2<T = number> = { x: T; y: T };
 export type ObjV3<T = number> = { x: T; y: T; z: T };
 export type RangeBrandTag<TMin extends number, TMax extends number> = {
   __min: TMin;
@@ -26,7 +28,9 @@ export type TimePeriod = LineSegment<TimeSpace>;
 export type PeriodOrSingleton<TNum extends number> = LineSegment<TNum> | TNum;
 export type BrandedNumber<Brand extends string> = BrandedType<number, Brand>;
 export type BrandedString<Brand extends string> = BrandedType<string, Brand>;
-export type EventID = BrandedString<"Event">;
+export type EventID = BrandedNumber<"Event">;
+export type NodeID = BrandedNumber<"Node">;
+export type AgentID = BrandedNumber<"Agent">;
 export type HistoricalEvent<
   TTime extends PeriodOrSingleton<TimeSpace> = PeriodOrSingleton<TimeSpace>
 > = {
@@ -36,6 +40,8 @@ export type HistoricalEvent<
   eventInfo: string;
   // either has a start & end or just a start
   eventTime: TTime;
+
+  participants?: AgentID[];
 };
 type ConversionTag<TFrom extends number, TTo extends number> = {
   __from: TFrom;
@@ -62,3 +68,36 @@ export const periodIsSegmentGuard = (
 ): event is TimePeriod => {
   return isNaN(event as any);
 };
+
+export type NetworkNode = {
+  id: NodeID;
+};
+export type RenderableNetworkNode = NetworkNode & {
+  renderedProps: { position: ObjV2<KonvaSpace>; color: HexStr };
+};
+
+export type NetworkEdge = {
+  origin: NodeID;
+  target: NodeID;
+};
+export type RenderableNetworkEdge = NetworkEdge & {
+  renderedProps: {
+    originPosition: ObjV2<KonvaSpace>;
+    targetPosition: ObjV2<KonvaSpace>;
+  };
+};
+
+export type RawNetwork = { edges: NetworkEdge[]; nodes: NetworkNode[] };
+export type RenderableNetwork = {
+  edges: RenderableNetworkEdge[];
+  nodes: RenderableNetworkNode[];
+};
+
+export type NetworkRenderingFunction = (
+  network: RawNetwork
+) => RenderableNetwork;
+
+// TODO restrictable matrix lengths?
+export type Matrix<T> = T[][];
+export type Adjacency = -1 | 0 | 1;
+export type AdjacencyMatrix = Matrix<Adjacency>;

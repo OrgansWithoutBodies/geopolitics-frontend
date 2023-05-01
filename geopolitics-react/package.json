@@ -16,6 +16,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-konva": "^18.2.7",
+    "react-resizable-panels": "^0.0.42",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
