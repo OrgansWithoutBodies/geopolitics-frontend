@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { ResizeHandle } from "./ResizeHandler";
 import { ObjV2 } from "./types";
 import { Network } from "./Network";
+import { WorldMap } from "./Map";
 function App() {
   // const ref = useRef<ImperativePanelGroupHandle>(null);
 
@@ -30,33 +31,34 @@ function App() {
     if (timelinePanelRef.current) {
       setPaneSize(timelinePanelRef.current.getSize());
     }
-   }, [timelinePanelRef.current?.getSize]);
+  }, [timelinePanelRef.current?.getSize]);
   const canvasSize: ObjV2 = { x: 1000, y: 300 };
   return (
-    <div style={{ width: canvasSize.x, height: canvasSize.y }}>
-      <div className={styles.Container}>
-        <PanelGroup direction="vertical">
-          <Panel
-            defaultSize={100}
-            className={styles.Panel}
-            ref={timelinePanelRef}
-          >
-            <div className={styles.PanelContent}>
-              <Timeline stageSize={{ x: canvasSize.x, y: paneSize || 0 }} />
-            </div>
-            {/* TEST */}
-          </Panel>
-          <ResizeHandle />
-          <Panel className={styles.Panel}>
-            <div className={styles.PanelContent}>
-              <Network stageSize={{ x: canvasSize.x, y: paneSize || 0 }} />
-            </div>
-            {/* <Timeline /> */}
-            {/* <AddNewEvent /> */}
-          </Panel>
-        </PanelGroup>
-      </div>
-    </div>
+    <WorldMap />
+    // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
+    //   <div className={styles.Container}>
+    //     <PanelGroup direction="vertical">
+    //       <Panel
+    //         defaultSize={100}
+    //         className={styles.Panel}
+    //         ref={timelinePanelRef}
+    //       >
+    //         <div className={styles.PanelContent}>
+    //           <Timeline stageSize={{ x: canvasSize.x, y: paneSize || 0 }} />
+    //         </div>
+    //         {/* TEST */}
+    //       </Panel>
+    //       <ResizeHandle />
+    //       <Panel className={styles.Panel}>
+    //         <div className={styles.PanelContent}>
+    //           <Network stageSize={{ x: canvasSize.x, y: paneSize || 0 }} />
+    //         </div>
+    //         {/* <Timeline /> */}
+    //         {/* <AddNewEvent /> */}
+    //       </Panel>
+    //     </PanelGroup>
+    //   </div>
+    // </div>
   );
 }
 

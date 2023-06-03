@@ -41,7 +41,7 @@ const rawNetworkToAdjMat = (network: RawNetwork): AdjacencyMatrix => {
       slice[edge.index] = 1;
     });
   });
-
+  console.log("TEST123-adjMat", adjMat);
   return adjMat;
 };
 // const adjMatToRawNetwork = (adjMat: AdjacencyMatrix): RawNetwork => {
