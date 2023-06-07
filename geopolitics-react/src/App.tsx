@@ -1,18 +1,20 @@
-import {
-  ImperativePanelGroupHandle,
-  ImperativePanelHandle,
-  Panel,
-  PanelGroup,
-} from "react-resizable-panels";
+import { ImperativePanelHandle } from "react-resizable-panels";
 import "./App.css";
-import styles from "./styles.module.css";
-import { Timeline } from "./Timeline";
 
 import { useEffect, useRef, useState } from "react";
-import { ResizeHandle } from "./ResizeHandler";
+import { bilateralRelations } from "./bilateralRelations";
+import { Capitals } from "./capitals";
+import { CountryFiles } from "./countries";
+import { countryInfo } from "./countryData";
+import {
+  CountryCode,
+  CountryInfoKey,
+  CountryNameLookup,
+  CountryRegionLookup,
+  RegionColorMap,
+} from "./mapTypes";
 import { ObjV2 } from "./types";
-import { Network } from "./Network";
-import { WorldMap } from "./Map";
+import { WorldMap } from "./WorldMap";
 function App() {
   // const ref = useRef<ImperativePanelGroupHandle>(null);
 
@@ -33,8 +35,52 @@ function App() {
     }
   }, [timelinePanelRef.current?.getSize]);
   const canvasSize: ObjV2 = { x: 1000, y: 300 };
+  const regionColorMap: RegionColorMap = {
+    Africa: "green",
+    Americas: "yellow",
+    Antarctica: "white",
+    Asia: "blue",
+    Europe: "cyan",
+    Oceania: "red",
+  };
+  const [year, setYear] = useState(2000);
+
+  const mapCountryData = (key: CountryInfoKey, value: CountryInfoKey) =>
+    Object.fromEntries(
+      countryInfo.map((country) => [country[key], country[value]])
+    );
+  const countryToRegion = mapCountryData(
+    "alpha-3",
+    "region"
+  ) as CountryRegionLookup<CountryCode>;
+  const countryToName = mapCountryData(
+    "alpha-3",
+    "name"
+  ) as CountryNameLookup<CountryCode>;
   return (
-    <WorldMap />
+    <>
+      <div>
+        <div onClick={() => setYear(year + 1)}>+</div>
+        <div onClick={() => setYear(year - 1)}>-</div>
+      </div>
+      <WorldMap
+        container={{
+          sizePx: { x: 1024, y: 780 },
+          center: [0, 0],
+        }}
+        contents={{
+          countries: Object.entries(CountryFiles).map(([key, geometry]) => ({
+            key,
+            geometry,
+          })),
+          countryToRegion,
+          countryToName,
+          regionColorMap,
+          countryHeartMap: Capitals,
+          bilateralRelations,
+        }}
+      />
+    </>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
     //   <div className={styles.Container}>
     //     <PanelGroup direction="vertical">

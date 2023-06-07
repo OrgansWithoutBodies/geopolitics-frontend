@@ -2,12 +2,9 @@ import { Store, StoreConfig } from "@datorama/akita";
 import type {
   EventID,
   HistoricalEvent,
-  KonvaSpace,
   NetworkEdge,
   NetworkNode,
   NodeID,
-  ObjV2,
-  RenderableNetworkNode,
   TimeSpace,
 } from "../types";
 type NodeLookup = Record<NodeID, NetworkNode>;

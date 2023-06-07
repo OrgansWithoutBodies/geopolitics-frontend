@@ -10,7 +10,6 @@ import {
   Stage,
   Text,
 } from "react-konva";
-import { DataQuery } from "./data/data.query";
 import { dataService } from "./data/data.service";
 import { orderedNumbers } from "./orderedNumbers";
 import {
@@ -20,12 +19,12 @@ import {
 } from "./TimelineContext";
 import {
   EventID,
-  periodIsSegmentGuard,
   HistoricalEvent,
+  ObjV2,
+  periodIsSegmentGuard,
   RenderableEvent,
   TimelineSpace,
   TimeSpace,
-  ObjV2,
 } from "./types";
 import { useData } from "./useAkita";
 
