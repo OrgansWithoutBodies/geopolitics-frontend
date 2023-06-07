@@ -11,7 +11,6 @@ import { CountryFiles } from "./countries";
 
 import { countryInfo, Regions } from "./countryData";
 import { ArrV2 } from "./types";
-type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const mapCountryData = (
   key: keyof (typeof countryInfo)[number],
   value: keyof (typeof countryInfo)[number]
@@ -20,14 +19,11 @@ const mapCountryData = (
     countryInfo.map((country) => [country[key], country[value]])
   );
 
+type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 type BilateralRelation = { between: ArrV2<CountryCode>; strength: -1 | 1 };
 export function WorldMap(): JSX.Element {
   const position = [40, -100] as ArrV2;
-  const relations: BilateralRelation[] = [
-    { between: ["CHN", "USA"], strength: -1 },
-    { between: ["VEN", "RUS"], strength: 1 },
-    { between: ["VEN", "CHN"], strength: 1 },
-  ];
+
   const capitalCityPositionByCode = (code: CountryCode) =>
     Capitals[code]
       ? [...Capitals[code]["geometry"]["coordinates"]].reverse()
@@ -66,7 +62,7 @@ export function WorldMap(): JSX.Element {
             </GeoJSON>
           ))}
           <LayerGroup>
-            {relations.map(({ between, strength }) => {
+            {bilateralRelations.map(({ between, strength }) => {
               return (
                 <Polyline
                   positions={[
