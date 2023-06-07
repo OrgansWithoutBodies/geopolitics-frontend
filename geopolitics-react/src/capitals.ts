@@ -2330,6 +2330,17 @@ export const Capitals = {
     },
     id: "SD",
   },
+  SSD: {
+    properties: {
+      country: "South Sudan",
+      city: "Juba",
+    },
+    geometry: {
+      coordinates: [31.5713, 4.8594],
+      type: "Point",
+    },
+    id: "SSD",
+  },
   DOM: {
     properties: {
       country: "Dominican Republic",

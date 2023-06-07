@@ -3238,6 +3238,7 @@ export const countryInfo = [
   },
 ] as const;
 
+// TODO 'Conflict Zone'/Disputed territory
 export type Country = (typeof countryInfo)[number]["name"];
 export type Regions = (typeof countryInfo)[number]["region"];
 export type SubRegions = (typeof countryInfo)[number]["sub-region"];
@@ -3253,3 +3254,4 @@ export type IntermediateRegions =
 // https://github.com/samayo/country-json/blob/master/src/country-by-population.json
 // https://github.com/samayo/country-json/blob/master/src/country-by-religion.json
 // https://github.com/mledoze/countries
+// https://github.com/lmirosevic/ReverseGeo/blob/master/lib/reverse_geo/World-EEZ.geojson
