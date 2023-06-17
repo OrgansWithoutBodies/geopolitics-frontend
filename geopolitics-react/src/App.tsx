@@ -2,10 +2,8 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import "./App.css";
 
 import { useEffect, useRef, useState } from "react";
-import { bilateralRelations } from "./bilateralRelations";
-import { Capitals } from "./capitals";
-import { CountryFiles } from "./countries";
 import { countryInfo } from "./countryData";
+import { QuotedText } from "./links/QuotedText";
 import {
   CountryCode,
   CountryInfoKey,
@@ -14,7 +12,7 @@ import {
   RegionColorMap,
 } from "./mapTypes";
 import { ObjV2 } from "./types";
-import { WorldMap } from "./WorldMap";
+import { buildQueryStringAndPost } from "./wd.requests";
 function App() {
   // const ref = useRef<ImperativePanelGroupHandle>(null);
 
@@ -26,10 +24,53 @@ function App() {
     }
   };
 
+  const mapVals = {
+    country: {
+      sourceKey: "item",
+      pCode: "P17",
+      valueKey: "?country",
+      joinChar: ".",
+      optional: false,
+    },
+    coords: {
+      sourceKey: "country",
+      pCode: "P625",
+      valueKey: "?coords",
+      joinChar: ".",
+      optional: false,
+    },
+    ideology: {
+      sourceKey: "item",
+      pCode: "P1142",
+      valueKey: "?ideology",
+      joinChar: ".",
+      optional: true,
+    },
+    start: {
+      sourceKey: "item",
+      pCode: "P571",
+      valueKey: "?start",
+      joinChar: ".",
+      optional: true,
+    },
+    end: {
+      sourceKey: "item",
+      pCode: "P576",
+      valueKey: "?end",
+      joinChar: ".",
+      optional: true,
+    },
+  };
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
   const [paneSize, setPaneSize] = useState<number | null>(null);
-
+  void buildQueryStringAndPost(
+    "",
+    ["country", "coords", "ideology", "start", "end"],
+    "wd:Q7278",
+    mapVals
+  );
   useEffect(() => {
+    console.log("TEST123-effect");
     if (timelinePanelRef.current) {
       setPaneSize(timelinePanelRef.current.getSize());
     }
@@ -63,7 +104,8 @@ function App() {
         <div onClick={() => setYear(year + 1)}>+</div>
         <div onClick={() => setYear(year - 1)}>-</div>
       </div>
-      <WorldMap
+      <QuotedText />
+      {/* <WorldMap
         container={{
           sizePx: { x: 1024, y: 780 },
           center: [0, 0],
@@ -79,7 +121,7 @@ function App() {
           countryHeartMap: Capitals,
           bilateralRelations,
         }}
-      />
+      /> */}
     </>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
     //   <div className={styles.Container}>

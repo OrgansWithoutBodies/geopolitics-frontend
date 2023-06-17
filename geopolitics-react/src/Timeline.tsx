@@ -230,16 +230,22 @@ const formatDates = ({ eventTime }: HistoricalEvent): string => {
 };
 
 // function timelineContextProvider = Contextprop
-export function Timeline({ stageSize }: { stageSize: ObjV2 }): JSX.Element {
+export function Timeline({
+  stageSize,
+  events,
+}: {
+  stageSize: ObjV2;
+  events: RenderableEvent[];
+}): JSX.Element {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const [
     {
-      renderReadyEvents: events,
+      // renderReadyEvents: events,
       finalDateFilterWithFallback: latestEventEnd,
       initialDateFilterWithFallback: earliestEventStart,
     },
   ] = useData([
-    "renderReadyEvents",
+    // "renderReadyEvents",
     "finalDateFilterWithFallback",
 
     "initialDateFilterWithFallback",

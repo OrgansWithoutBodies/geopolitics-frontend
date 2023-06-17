@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@datorama/akita": "^8.0.1",
+    "axios": "^1.4.0",
     "konva": "^9.0.1",
     "leaflet": "^1.9.4",
     "rambdax": "^9.1.1",
@@ -18,8 +19,11 @@
     "react-dom": "^18.2.0",
     "react-konva": "^18.2.7",
     "react-leaflet": "^4.2.1",
+    "react-marker": "^1.0.1",
     "react-resizable-panels": "^0.0.42",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "superstruct": "^1.0.3",
+    "xpath-range": "^1.1.1"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.3",
