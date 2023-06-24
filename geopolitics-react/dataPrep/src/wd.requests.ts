@@ -1,5 +1,4 @@
 import axios, { HttpStatusCode } from "axios";
-import { array, object, Struct } from "superstruct";
 import {
   CodeURI,
   DBResults2NF,
@@ -16,7 +15,7 @@ const url = "https://query.wikidata.org/sparql?flavor=dump";
 const INSTANCE_OF = "P31" as const;
 const COORDINATE_LOCATION = "P625" as const;
 
-const unMemberStates = `
+export const unMemberStates = `
 #UN member states
 SELECT DISTINCT ?state  WHERE {
   ?state wdt:${INSTANCE_OF}/wdt:P279* wd:Q3624078;
@@ -26,29 +25,144 @@ SELECT DISTINCT ?state  WHERE {
   MINUS { ?memberOfStatement pq:P582 ?endTime. }
   MINUS { ?state wdt:P576|wdt:P582 ?end. }
 }` as const;
-const hospitals = `
+export const hospitals = `
 SELECT DISTINCT ?item ?coord WHERE {
   ?item wdt:${INSTANCE_OF}/wdt:P279* wd:Q16917;
         wdt:${COORDINATE_LOCATION}?coord .
-}` as const;
-const minerals = `
-SELECT DISTINCT ? WHERE {
-  ?item wdt:${INSTANCE_OF} wd:Q889659;
-}` as const;
-const mines = `SELECT ?item ?country ?coord ?produces
-WHERE {
-    ?item wdt:${INSTANCE_OF} wd:Q820477.
-    ?item wdt:P17 ?country.
-    ?item wdt:${COORDINATE_LOCATION}?coord.
-    ?item wdt:P1056 ?produces.
-}
-` as const;
+      }` as const;
+const COORD_BLOCK = ({ source = "item" }: { source?: string }) =>
+  ({
+    coords: {
+      sourceKey: source,
+      pCode: COORDINATE_LOCATION,
+      valueKey: "?coords",
+      joinChar: ".",
+      optional: false,
+    },
+  } as const);
+const COUNTRY_BLOCK = ({ source = "item" }: { source?: string }) =>
+  ({
+    country: {
+      sourceKey: source,
+      pCode: "P17",
+      valueKey: "?country",
+      joinChar: ".",
+      optional: false,
+    },
+  } as const);
+const TIME_PERIOD_BLOCK = ({
+  source = "item",
+  startOptional = true,
+  endOptional = true,
+}: {
+  source?: string;
+  startOptional?: boolean;
+  endOptional?: boolean;
+}) =>
+  ({
+    start: {
+      sourceKey: source,
+      pCode: "P571",
+      valueKey: "?start",
+      joinChar: ".",
+      optional: startOptional,
+    },
+    end: {
+      sourceKey: source,
+      pCode: "P576",
+      valueKey: "?end",
+      joinChar: ".",
+      optional: endOptional,
+    },
+  } as const);
 
-const militaryAlliances = `
-SELECT ?item ?itemLabel 
-WHERE {
-    ?item wdt:${INSTANCE_OF} wd:Q1127126.
-}` as const;
+export const parties = {
+  mainValue: "wd:Q7278",
+  query: {
+    ...COUNTRY_BLOCK({}),
+    ...TIME_PERIOD_BLOCK({}),
+    ideology: {
+      sourceKey: "item",
+      pCode: "P1142",
+      valueKey: "?ideology",
+      joinChar: ".",
+      optional: true,
+    },
+  },
+} as const;
+
+export const mines = {
+  mainValue: "wd:Q820477",
+  query: {
+    ...COORD_BLOCK({}),
+    ...COUNTRY_BLOCK({}),
+    produces: {
+      sourceKey: "item",
+      pCode: "P1056",
+      valueKey: "?produces",
+      joinChar: ".",
+      optional: false,
+    },
+  },
+} as const;
+export const wars = {
+  mainValue: "wd:Q198",
+  // TODO
+  includeSubclasses: true,
+  query: {
+    ...COUNTRY_BLOCK({}),
+    produces: {
+      sourceKey: "item",
+      pCode: "P1056",
+      valueKey: "?produces",
+      joinChar: ".",
+      optional: false,
+    },
+  },
+} as const;
+// pd
+export const minerals = {
+  mainValue: "wd:Q889659",
+  query: {},
+} as const;
+export const militaryAlliances = {
+  mainValue: "wd:Q1127126",
+  query: {},
+} as const;
+// Q467011 invasion
+// Q2001676 military offensive
+// military campaign (Q831663)
+// perpetual war (Q1469686)
+// participant (P710)
+// proxy war (Q864113)
+// military intervention (Q5919191)
+// intervention (Q1168287)
+// war (Q198)
+// armed conflict (Q350604)
+// violent conflict (Q115431196)
+// humanitarian intervention (Q1143267)
+// world war (Q103495)
+// religious war (Q1827102)
+// has part(s) (P527)
+// followed by (P156) (for historical countries)
+// follows (P155)
+// replaced by (P1366)
+// replaces (P1365) (' Use "follows" (P155) if the previous item was not replaced or predecessor and successor are identical')
+// official religion (P3075)
+// kingdom (Q417175)
+// colonial power (Q20181813)
+// currency (P38)
+// capital (P36)
+// official language (P37)
+// vassal state (Q1371288)
+// puppet state (Q208164)
+// client state (Q1151405)
+// great power (Q185145)
+// state with limited recognition (Q15634554)
+// historical unrecognized state (Q99541706)
+// government in exile (Q678116)
+// regime (Q5589178)
+// colony (Q133156)
 const query = `
 SELECT DISTINCT ?item ?title ?seats ?jurisdiction (YEAR(?inception) AS ?start) (YEAR(?dissolution) AS ?end)
 WHERE
@@ -57,22 +171,11 @@ WHERE
   OPTIONAL { ?item wdt:P1342 ?seats . }
   OPTIONAL {
     ?item wdt:P1001 ?j .
-    ?j rdfs:label ?jurisdiction FILTER (lang(?jurisdiction) = "en") .
+    ?j rdfs:label ?jurisdiction .
   }
   OPTIONAL { ?item wdt:P571 ?inception . }
   OPTIONAL { ?item wdt:P576 ?dissolution . }
-  OPTIONAL { ?item rdfs:label ?title FILTER (lang(?title) = "en") . }
-}
-ORDER BY DESC(?seats) ?title
-` as const;
-const parties = `
-SELECT ?item ?country ?ideology ?start ?end
-WHERE {
-    ?item wdt:${INSTANCE_OF} wd:Q7278.
-    ?item wdt:P17 ?country.
-    OPTIONAL{?item wdt:P1142 ?ideology}
-    OPTIONAL{?item wdt:P571 ?start}
-    OPTIONAL{?item wdt:P576 ?end}
+  OPTIONAL { ?item rdfs:label ?title . }
 }
 ` as const;
 
@@ -100,11 +203,13 @@ function buildQueryString<
   }
 >(
   // TODO make this needed?
-  refList: TRefs,
+  // refList: TRefs,
   keyList: TKeys,
   mainValueKey: TValueKey,
   valueMaps: TValueMaps
 ): QueryString<TRefs, TKeys, TValueKey, TValueMaps> {
+  console.log("test123", keyList);
+
   const returnKeys = keyList
     .map((key) => `?${String(key)}`)
     .join(" ") as JoinStringArray<TKeys, " ?", "?">;
@@ -163,15 +268,15 @@ type AvailableResponseElements =
   | WDDTTZResponseElement
   | WDIdRefResponseElement
   | CoordinateResponseElement;
+export type GenericWDElement<TKeys extends (string | number | symbol)[]> = {
+  [key in TKeys[number]]: WDResponseElement;
+};
+
 export type RawResponseFromWD<
   TRefs extends DBResults2NF,
   TKeys extends (keyof TRefs)[],
   TStatus extends HttpStatusCode = HttpStatusCode,
-  TRawElement extends {
-    [key in TKeys[number]]: WDResponseElement;
-  } = {
-    [key in TKeys[number]]: WDResponseElement;
-  }
+  TRawElement extends GenericWDElement<TKeys> = GenericWDElement<TKeys>
   // TODO think this unknown is making things funky
 > = {
   status: TStatus;
@@ -196,13 +301,13 @@ export async function buildQueryStringAndPost<
   }
 >(
   // TODO
-  refList: TRefs,
   keyList: TKeys,
   mainValueKey: TValueKey,
   valueMaps: TValueMaps
 ) {
+  console.log("TEST123");
+
   const builtStr = buildQueryString(
-    refList,
     keyList as readonly string[],
     mainValueKey,
     valueMaps
@@ -219,6 +324,7 @@ export async function buildQueryStringAndPost<
     return null;
   }
   const validatedData = ValidateDataContents(result);
+  return { validatedData, result };
 }
 // make sure no formatting has changed since last run, if so complain on compile
 //
@@ -229,16 +335,75 @@ function ValidateDataContents<
   TData extends TResponse["data"]["results"]["bindings"] = TResponse["data"]["results"]["bindings"],
   TDatum extends TData[number] = TData[number]
 >(results: TResponse) {
-  return array(object<Struct<TDatum>>({}));
+  return results.data.results.bindings.map((val) =>
+    Object.fromEntries(
+      Object.entries(val).map(([kk, vv]) => {
+        const [k, v] = [kk, vv] as [string, WDResponseElement];
+        if (v["type"] === "uri") {
+          const splitVal = (v["value"] as string).split("/");
+          return [k, { ...v, value: splitVal[splitVal.length - 1] }];
+        }
+        return [k, v];
+      })
+    )
+  );
+  // return array(object<Struct<TDatum>>({}));
+}
+function ValidateQCodes(
+  results: {
+    item: {
+      type: "uri";
+      value: `http://www.wikidata.org/entity/${QCode<number>}`;
+    };
+    itemLabel: { "xml:lang": "en"; type: "literal"; value: string };
+  }[]
+) {
+  return Object.fromEntries(
+    results.map((val) => {
+      const splitVal = val["item"]["value"].split("/");
+      return [splitVal[splitVal.length - 1], val["itemLabel"]["value"]];
+    })
+  );
+  // return array(object<Struct<TDatum>>({}));
 }
 
-function queryNamesForQCodes(qCodes: QCode<number>[]) {
-  return `SELECT DISTINCT ?item ?itemLabel
+export function buildQueryForQCodeNames(qCodes: QCode<number>[]) {
+  const test = qCodes.join(" ");
+  const val = `SELECT DISTINCT ?item ?itemLabel
   WHERE
   {
       VALUES ?item {${qCodes.map((code) => `wd:${code}`).join(" ")}}
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } 
   }`;
+
+  return val;
+}
+export async function getQCodeNames(qCodes: QCode<number>[]) {
+  const chunkSize = 500;
+  const numChunks = Math.ceil(qCodes.length / chunkSize);
+  let currentResults: any[] = [];
+  let currentChunk = 0;
+  // console.log(result.data);
+  const resultIsOk = (res: any) => {
+    return res["status"] === 200;
+  };
+  while (currentChunk < numChunks) {
+    const query = buildQueryForQCodeNames(
+      qCodes.slice(currentChunk * chunkSize, (currentChunk + 1) * chunkSize)
+    );
+
+    const result = await axios.get(url, {
+      params: { query, format: "json" },
+    });
+    if (!resultIsOk(result)) {
+      return null;
+    }
+    currentResults = [...currentResults, ...result.data["results"]["bindings"]];
+    currentChunk += 1;
+    console.log(`Got chunk ${currentChunk} of ${numChunks}`);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return ValidateQCodes(currentResults);
 }
 function coallesceItems(originalArray: object[], keysToCoallesce: string[]) {
   originalArray;

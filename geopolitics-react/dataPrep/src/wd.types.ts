@@ -1,4 +1,5 @@
 import { BrandedNumber } from "./types";
+// TODO overwrite array join/reverse prototypes to have rich typing
 
 export type WDId<TCategory extends string> = string & {
   __brand: "WDId";
@@ -54,12 +55,14 @@ export type JoinStringArray<
         Joiner,
         FirstJoin,
         Head extends string
-          ? // first line special case
-            Acc extends ""
-            ? `${FirstJoin}${Head}`
-            : ConcatStringArray<readonly [Acc, Joiner, Head]>
-          : // TODO this is the never error - head not string
-            never
+          ? Rest extends string
+            ? // first line special case
+              Acc extends ""
+              ? `${FirstJoin}${Head}${Rest}`
+              : ConcatStringArray<readonly [Acc, Joiner, Head]>
+            : // TODO this is the never error - head not string
+              never
+          : never
       >
     : never
   : Acc;
@@ -89,6 +92,24 @@ export type QueryValueSpec<
     | ReturnValKey<string>,
   // TODO if this value is optional then the returned value is possibly null
   TOptional extends boolean = boolean,
+  // https://www.wikidata.org/wiki/Wikidata:SPARQL_tutorial#SPARQL_basics
+  // if you end a triple with a semicolon (;) instead of a period, you can add another predicate-object pair. This allows us to abbreviate a query
+  // You can use a pair of brackets ([]) in place of a variable, which acts as an anonymous variable. Inside the brackets, you can specify predicate-object pairs, just like after a ;
+  // multiple objects for the same subject and predicate can be listed separated by commas.
+  // You can add path elements with a forward slash (/).
+
+  // ?item wdt:P31/wdt:P279/wdt:P279 ?class.
+  // This is equivalent to either of the following:
+  // ?item wdt:P31 ?temp1.
+  // ?temp1 wdt:P279 ?temp2.
+  // ?temp2 wdt:P279 ?class.
+  // OR
+  // ?item wdt:P31 [ wdt:P279 [ wdt:P279 ?class ] ].
+
+  // prefix: p:, [...] points not to the object, but to a statement node.  This node then is the subject of other triples
+  // ORDER/LIMIT
+  // FILTER
+  // SERVICE
   TJoinChar extends "." | ";" = "."
 > = {
   sourceKey: TSourceKey;
@@ -181,3 +202,16 @@ export type WDPoliticalParty = FoldDBResults<
   WDPoliticalPartyDBEntry,
   ["ideology"]
 >;
+// declare global {
+//   interface Array<T> {
+//     join<TSeparator = Readonly<string> | undefined>(
+//       separator?: TSeparator
+//     ): T extends Readonly<string>
+//       ? TSeparator extends string
+//         ? JoinStringArray<T[], TSeparator, ",", "test">
+//         : string
+//       : string;
+//   }
+// }
+type Test = JoinStringArray<["a", "b", "c"], " . ">;
+const test = ["a", "b", "c"].join(" . ");
