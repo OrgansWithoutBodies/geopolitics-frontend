@@ -4,6 +4,7 @@ import {
   DBResults2NF,
   JoinStringArray,
   MapArrayOp,
+  PCode,
   QCode,
   QueryString,
   QueryValueSpec,
@@ -13,6 +14,7 @@ import {
 
 const url = "https://query.wikidata.org/sparql?flavor=dump";
 const INSTANCE_OF = "P31" as const;
+const SUBCLASS_OF = "P279" as const;
 const COORDINATE_LOCATION = "P625" as const;
 
 export const unMemberStates = `
@@ -25,11 +27,7 @@ SELECT DISTINCT ?state  WHERE {
   MINUS { ?memberOfStatement pq:P582 ?endTime. }
   MINUS { ?state wdt:P576|wdt:P582 ?end. }
 }` as const;
-export const hospitals = `
-SELECT DISTINCT ?item ?coord WHERE {
-  ?item wdt:${INSTANCE_OF}/wdt:P279* wd:Q16917;
-        wdt:${COORDINATE_LOCATION}?coord .
-      }` as const;
+
 const COORD_BLOCK = ({ source = "item" }: { source?: string }) =>
   ({
     coords: {
@@ -54,22 +52,26 @@ const TIME_PERIOD_BLOCK = ({
   source = "item",
   startOptional = true,
   endOptional = true,
+  startType = "P571",
+  endType = "P576",
 }: {
   source?: string;
   startOptional?: boolean;
   endOptional?: boolean;
+  startType?: PCode<571 | 580>;
+  endType?: PCode<576 | 582>;
 }) =>
   ({
     start: {
       sourceKey: source,
-      pCode: "P571",
+      pCode: startType,
       valueKey: "?start",
       joinChar: ".",
       optional: startOptional,
     },
     end: {
       sourceKey: source,
-      pCode: "P576",
+      pCode: endType,
       valueKey: "?end",
       joinChar: ".",
       optional: endOptional,
@@ -78,6 +80,7 @@ const TIME_PERIOD_BLOCK = ({
 
 export const parties = {
   mainValue: "wd:Q7278",
+  includeSubclasses: true,
   query: {
     ...COUNTRY_BLOCK({}),
     ...TIME_PERIOD_BLOCK({}),
@@ -91,8 +94,16 @@ export const parties = {
   },
 } as const;
 
+export const hospitals = {
+  mainValue: "wd:Q16917",
+  includeSubclasses: true,
+  query: {
+    ...COORD_BLOCK({}),
+  },
+} as const;
 export const mines = {
   mainValue: "wd:Q820477",
+  includeSubclasses: true,
   query: {
     ...COORD_BLOCK({}),
     ...COUNTRY_BLOCK({}),
@@ -107,33 +118,44 @@ export const mines = {
 } as const;
 export const wars = {
   mainValue: "wd:Q198",
-  // TODO
   includeSubclasses: true,
   query: {
-    ...COUNTRY_BLOCK({}),
-    produces: {
+    ...TIME_PERIOD_BLOCK({
+      startType: "P580",
+      endType: "P582",
+      startOptional: true,
+      endOptional: true,
+    }),
+    participant: {
+      // TODO some way of encoding that this returns a country
       sourceKey: "item",
-      pCode: "P1056",
-      valueKey: "?produces",
+      pCode: "P710",
+      valueKey: "?participant",
       joinChar: ".",
       optional: false,
     },
   },
 } as const;
 // pd
-export const minerals = {
-  mainValue: "wd:Q889659",
-  query: {},
-} as const;
-export const militaryAlliances = {
-  mainValue: "wd:Q1127126",
-  query: {},
-} as const;
+// config for simple 'is instance of X or subcat of x (repeating)
+const getAllSubcategoriesOf = (code: QCode<number>) =>
+  ({
+    mainValue: `wd:${code}`,
+    includeSubclasses: true,
+    query: {},
+  } as const);
+export const minerals = getAllSubcategoriesOf("Q889659");
+export const metals = getAllSubcategoriesOf("Q11426");
+export const rocks = getAllSubcategoriesOf("Q8063");
+export const colonies = getAllSubcategoriesOf("Q133156");
+export const militaryAlliances = getAllSubcategoriesOf("Q1127126");
+// metallic material (Q1924900)
 // Q467011 invasion
 // Q2001676 military offensive
 // military campaign (Q831663)
 // perpetual war (Q1469686)
 // participant (P710)
+
 // proxy war (Q864113)
 // military intervention (Q5919191)
 // intervention (Q1168287)
@@ -143,17 +165,8 @@ export const militaryAlliances = {
 // humanitarian intervention (Q1143267)
 // world war (Q103495)
 // religious war (Q1827102)
-// has part(s) (P527)
-// followed by (P156) (for historical countries)
-// follows (P155)
-// replaced by (P1366)
-// replaces (P1365) (' Use "follows" (P155) if the previous item was not replaced or predecessor and successor are identical')
-// official religion (P3075)
 // kingdom (Q417175)
 // colonial power (Q20181813)
-// currency (P38)
-// capital (P36)
-// official language (P37)
 // vassal state (Q1371288)
 // puppet state (Q208164)
 // client state (Q1151405)
@@ -163,6 +176,16 @@ export const militaryAlliances = {
 // government in exile (Q678116)
 // regime (Q5589178)
 // colony (Q133156)
+
+// official currency (P38)
+// capital (P36)
+// official language (P37)
+// has part(s) (P527)
+// followed by (P156) (for historical countries)
+// follows (P155)
+// replaced by (P1366)
+// replaces (P1365) (' Use "follows" (P155) if the previous item was not replaced or predecessor and successor are identical')
+// official religion (P3075)
 const query = `
 SELECT DISTINCT ?item ?title ?seats ?jurisdiction (YEAR(?inception) AS ?start) (YEAR(?dissolution) AS ?end)
 WHERE
@@ -206,7 +229,8 @@ function buildQueryString<
   // refList: TRefs,
   keyList: TKeys,
   mainValueKey: TValueKey,
-  valueMaps: TValueMaps
+  valueMaps: TValueMaps,
+  includeSubclasses: boolean
 ): QueryString<TRefs, TKeys, TValueKey, TValueMaps> {
   console.log("test123", keyList);
 
@@ -224,7 +248,9 @@ function buildQueryString<
     .join("\n") as JoinStringArray<MapArrayOp<TKeys, TValueMaps>, "\n">;
   return `SELECT ?item ${returnKeys}
 WHERE {
-?item wdt:P31 ${mainValueKey} .
+?item wdt:${INSTANCE_OF}${
+    includeSubclasses ? `/wdt:${SUBCLASS_OF}*` : ""
+  } ${mainValueKey} .
 ${filterLines}
 }` as QueryString<TRefs, TKeys, TValueKey, TValueMaps>;
 }
@@ -303,15 +329,18 @@ export async function buildQueryStringAndPost<
   // TODO
   keyList: TKeys,
   mainValueKey: TValueKey,
-  valueMaps: TValueMaps
+  valueMaps: TValueMaps,
+  includeSubclasses = false
 ) {
-  console.log("TEST123");
-
   const builtStr = buildQueryString(
     keyList as readonly string[],
     mainValueKey,
-    valueMaps
+    valueMaps,
+    includeSubclasses
   );
+
+  console.log("TEST123", wars);
+
   const result: RawResponseFromWD<TRefs, TKeys> = await axios.get(url, {
     params: { query: builtStr, format: "json" },
   });
@@ -401,6 +430,7 @@ export async function getQCodeNames(qCodes: QCode<number>[]) {
     currentResults = [...currentResults, ...result.data["results"]["bindings"]];
     currentChunk += 1;
     console.log(`Got chunk ${currentChunk} of ${numChunks}`);
+    // add a wait to prevent angering the wikidata gods
     await new Promise((r) => setTimeout(r, 1000));
   }
   return ValidateQCodes(currentResults);
