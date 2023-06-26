@@ -6,12 +6,17 @@ import {
   buildQueryStringAndPost,
   colonies,
   getQCodeNames,
-  hospitals,
+  independenceDeclarations,
   metals,
   militaryAlliances,
   minerals,
   mines,
+  newsAgencies,
   parties,
+  pmcs,
+  railways,
+  regimeChanges,
+  revolutions,
   rocks,
   wars,
 } from "./wd.requests";
@@ -23,24 +28,29 @@ const program = new Command();
 const errorLog = (details?: string) =>
   console.log("Sorry, something went wrong", details);
 
-const availableQueries: Record<
-  string,
-  {
-    mainValue: `wd:${QCode<number>}`;
-    includeSubclasses?: true;
-    query: Record<string, any>;
-  }
-> = {
+type AvailableQuery = {
+  mainValue: `wd:${QCode<number>}`;
+  includeSubclasses?: true;
+  query: Record<string, any>;
+};
+
+const availableQueries: Record<string, AvailableQuery> = {
   wars,
   military: militaryAlliances,
-  //   unMemberStates,
-  hospitals,
+  pmcs,
   colonies,
   rocks,
   metals,
   minerals,
+  newsAgencies,
   mines,
+  regimeChanges,
+  railways,
+  independence: independenceDeclarations,
   parties,
+  revolutions,
+  // hospitals,
+  // unMemberStates,
 };
 
 const intersectSets = (a: Set<any>, b: Set<any>) =>
@@ -66,10 +76,6 @@ program
     }
 
     for (const name of safeGet) {
-      console.log("test123", name);
-
-      // TODO
-      // TODO verify given values are in available/'all'
       const data = await buildQueryStringAndPost(
         Object.keys(availableQueries[name].query),
         availableQueries[name].mainValue,
@@ -91,7 +97,10 @@ program
       const qCodes: QCode<number>[] = [];
       data.validatedData.forEach((val) =>
         Object.values(val).forEach((element) => {
-          if (element["type"] === "uri") {
+          if (
+            element["type"] === "uri" &&
+            (element["value"] as string).startsWith("Q")
+          ) {
             // TODO no need to save datatype val
             // TODO coords to tuple
             // TODO make this typesafer
@@ -99,6 +108,7 @@ program
           }
         })
       );
+      console.log(qCodes);
       const qCodeQueryResults = await getQCodeNames(qCodes);
       if (qCodeQueryResults === null) {
         errorLog();

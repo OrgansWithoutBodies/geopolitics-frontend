@@ -1,6 +1,6 @@
 import axios from "axios";
 import fs from "fs";
-import { parse } from "node-html-parser";
+import { HTMLElement, Node, parse as htmlParser } from "node-html-parser";
 import Parser from "rss-parser";
 
 // TODO
@@ -13,6 +13,14 @@ async function sleep(lenMS: number) {
   console.log(`Waited ${lenMS}ms to be friendly`);
 }
 
+function getHrefContent(val: HTMLElement): string | undefined {
+  return val.rawAttrs
+    .split(" ")
+    .find((str) => str.split("=")[0] === "href")
+    ?.replace("href=", "")
+    .replace('"', "")
+    .replace('"', "");
+}
 type URL = `http://${string}` | `https://${string}`;
 
 type QCode = `Q${number}`;
@@ -42,7 +50,7 @@ async function parseFeed(
     ...feed,
     items: feed.items.map((item) => ({
       ...item,
-      parsedSummary: parse(item.summary),
+      parsedSummary: htmlParser(item.summary),
     })),
   };
   return parsedFeed;
@@ -56,17 +64,30 @@ const getWikidataObjectForWikiPage = (
   `https://en.${page}.org/w/api.php?action=query&format=json&prop=pageprops&ppprop=wikibase_item&redirects=1&titles=${articleNames.join(
     "|"
   )}`;
-// TODO no !
 const getQCodesFromTitles = async (
   titles: (string | undefined)[],
   page: "wikipedia" | "wikinews" = "wikipedia"
 ): Promise<WDInfo[]> => {
-  const pageUrl = getWikidataObjectForWikiPage(
-    titles.filter((val) => val !== undefined) as string[],
-    page
-  );
-  const res = await axios.get(pageUrl);
-
+  const chunkSize = 50;
+  const numChunks = Math.ceil(titles.length / chunkSize);
+  const datas = (
+    await Promise.all(
+      [...Array.from({ length: numChunks }).keys()].map(async (ii) => {
+        sleep(S_IN_MS * ii);
+        const pageUrl = getWikidataObjectForWikiPage(
+          titles
+            .filter((val) => val !== undefined)
+            .slice(ii * chunkSize, (ii + 1) * chunkSize) as string[],
+          page
+        );
+        const res = await axios.get(pageUrl);
+        return parseQCodes(res, pageUrl);
+      })
+    )
+  ).flat();
+  return datas;
+};
+function parseQCodes(res: { data: any; status: number }, pageUrl: string) {
   if (-1 in res.data.query.pages) {
     delete res.data.query.pages[-1];
   }
@@ -79,16 +100,18 @@ const getQCodesFromTitles = async (
     }[]
   ).filter((val) => "pageprops" in val);
 
-  console.log(
-    "TEST123",
-    resData.map(({ title, pageprops }) => ({ title, pageprops }))
-  );
+  // console.log(
+  //   "TEST123",
+  //   pageUrl,
+  //   resData.map(({ title, pageprops }) => ({ title, pageprops }))
+  // );
 
   return resData.map((data) => ({
     title: data.title,
     code: data.pageprops.wikibase_item,
   }));
-};
+}
+
 function makeParserForFeed() {
   const parser: Parser<CustomFeed, CustomEntry> = new Parser({});
 
@@ -122,16 +145,7 @@ async function getData(feeds: URL[]): Promise<
     item.parsedSummary.querySelectorAll("a")
   );
   const hrefLinks = hrefsItems.map((hrefs) => [
-    ...new Set(
-      hrefs.map((val) =>
-        val.rawAttrs
-          .split(" ")
-          .find((str) => str.split("=")[0] === "href")
-          ?.replace("href=", "")
-          .replace('"', "")
-          .replace('"', "")
-      )
-    ),
+    ...new Set(hrefs.map((val) => getHrefContent(val))),
   ]);
   // .filter((link) => (link as any).href !== undefined)
   const wikipediaLinks = hrefLinks.map((href) =>
@@ -227,19 +241,21 @@ type Years =
   | 2022
   | 2023;
 
-type Months =
-  | "January"
-  | "February"
-  | "March"
-  | "April"
-  | "May"
-  | "June"
-  | "July"
-  | "August"
-  | "September"
-  | "October"
-  | "November"
-  | "December";
+const Months = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+type Months = (typeof Months)[number];
 type Days =
   | 1
   | 2
@@ -300,19 +316,186 @@ type Event = {
   Sources: EventSource[];
   PrimarySource: EventSource;
   References: EventPage[];
-  Date: Date;
+  Date: DateObj;
   OriginalDate: string;
   Checksum: string;
   Page: string;
   Contributors: string;
 };
 
-type Date = {
+type DateObj = {
   y: Years;
   m: Months;
   d: Days;
 };
 
-function parseWikipediaCurrentEvents({ y, m, d }: Date) {
-  const dateStr = `https://en.wikipedia.org/wiki/Portal:Current_events/${y}_${m}_${d}`;
+async function parseWikipediaCurrentEvents({ y, m, d }: DateObj) {
+  const urlStr = `https://en.wikipedia.org/wiki/Portal:Current_events/${y}_${m}_${d}`;
+  const response = await axios.get(urlStr);
+  if (response.status !== 200) {
+    return;
+  }
+  const event = htmlParser(response.data);
+  const eventBody = event
+    .querySelector(".vevent")
+    ?.querySelector(".description");
+  // eventBody.chil
+  const children = eventBody?.childNodes.filter((node) => node.text !== "\n");
+  if (!children) {
+    return;
+  }
+  const NodeIsHTMLElementGuard = (node: Node): node is HTMLElement => {
+    return "classList" in node;
+  };
+
+  const parseEntry = (
+    node: Node
+  ): {
+    externalLink: { text: string | undefined; link: string | undefined } | null;
+    internalLinks: string[];
+    text: string;
+  } => {
+    const externalLink = NodeIsHTMLElementGuard(node)
+      ? {
+          text: node.querySelector(".external")?.text as string | undefined,
+          link: node.querySelector(".external")
+            ? getHrefContent(node.querySelector(".external")!)
+            : undefined,
+        }
+      : null;
+    const links = NodeIsHTMLElementGuard(node)
+      ? node
+          .querySelectorAll("a")
+          .map((link) => getHrefContent(link))
+          .filter((v) => v !== undefined)
+          .filter((v) => v?.startsWith("/"))
+      : null;
+    return {
+      externalLink: externalLink,
+      internalLinks: (links as string[]) || [],
+      text: node.text,
+    };
+  };
+  // node.childNodes is a list of lis - each li is either an event or (potentially multiple) entries into a topic with
+  const parseDetails = (node: Node) => {
+    const lis = node.childNodes.filter((v) => v.text !== "\n");
+    return lis.map((li) => {
+      if (NodeIsHTMLElementGuard(li)) {
+        const eventDetailsList = li.querySelector("ul");
+        // not part of broader topic
+        if (eventDetailsList === null) {
+          // TODO parse links here
+          return parseEntry(li);
+        }
+        const broaderTopicNodes = li.childNodes.slice(0, -2);
+        const broaderTopicString = broaderTopicNodes
+          .map((broaderTopicNode) => broaderTopicNode.text)
+          .join("");
+        const broaderTopicLinks = broaderTopicNodes
+          .filter((v) => NodeIsHTMLElementGuard(v) && v.rawTagName === "a")
+          .map((v) => getHrefContent(v as HTMLElement));
+        // console.log("TEST123-details", broaderTopicLinks);
+
+        // now get details
+        return {
+          broaderTopicString,
+          broaderTopicLinks,
+          entries: eventDetailsList.childNodes.map((entry) =>
+            parseEntry(entry)
+          ),
+        };
+      }
+      console.log("TEST123-notelement", li.text);
+      return null;
+    });
+    // if(events[events.length-1]==='ul'){
+
+    // }
+  };
+  const data = {
+    date: { y, m, d },
+    events: [...Array.from({ length: children.length / 2 }).keys()].map(
+      (ii) => {
+        return {
+          category: children[2 * ii].text,
+          stories: parseDetails(children[2 * ii + 1]),
+        };
+      }
+    ),
+  };
+
+  const internalLinks = data.events
+    .map((event) =>
+      event.stories
+        .map((v) => (v && "internalLinks" in v ? v.internalLinks : null))
+        .filter((v) => v !== null)
+        .flat()
+    )
+    .flat();
+  const allInternalLinks = [
+    ...internalLinks,
+    ...data.events
+      .map((event) =>
+        event.stories
+          .map((v) =>
+            v && "entries" in v
+              ? v.entries.map((vv) => vv.internalLinks.flat()).flat()
+              : null
+          )
+          .filter((v) => v !== null)
+          .flat()
+      )
+      .flat(),
+  ] as string[];
+  // .filter((v) => v !== null);
+  const qCodes = await getQCodesFromTitles(
+    allInternalLinks.map((v) => v.replace("/wiki/", "").split("#")[0])
+  );
+  // console.log(qCodes);
+  if (!fs.existsSync(`out/currentEvents/${y}/${m}`)) {
+    fs.mkdirSync(`out/currentEvents/${y}/${m}`, { recursive: true });
+  }
+  fs.writeFile(
+    `out/currentEvents/${y}/${m}/data-${d}.json`,
+    JSON.stringify({ ...data, qCodes }),
+    { flag: "wx" },
+    function (err) {
+      if (err) {
+        console.log(err);
+      }
+    }
+  );
+  // console.log();
+  // we expect children here to be loosely coupled p/ul pairs
+  // topics = append(topics, EventPage{
+  //   Title:       primaryTopicTitle,
+  //   Uri:         primaryTopicUri,
+  //   ExternalUrl: "https://en.wikipedia.org" + primaryTopicUri,
+  // })
 }
+
+const parseWikipediaCurrentEventsBetweenDates = async (
+  { y: ys, m: ms, d: ds }: DateObj,
+  { y: ye, m: me, d: de }: DateObj
+) => {
+  const startDate = new Date(`${ds} ${ms} ${ys}`);
+  const endDate = new Date(`${de} ${me} ${ye}`);
+  const currentDate = startDate;
+  while (currentDate.getTime() < endDate.getTime()) {
+    // console.log(currentDate, currentDate.getDate(), endDate.getDate());
+    parseWikipediaCurrentEvents({
+      y: currentDate.getFullYear() as Years,
+      m: Months[currentDate.getMonth()] as Months,
+      d: currentDate.getDate() as Days,
+    });
+    await sleep(S_IN_MS);
+    // var tomorrow = new Date();
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+};
+
+parseWikipediaCurrentEventsBetweenDates(
+  { y: 2020, m: "January", d: 1 },
+  { y: 2023, m: "January", d: 1 }
+  // { y: 2023, m: "June", d: 25 }
+);

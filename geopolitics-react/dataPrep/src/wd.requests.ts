@@ -16,11 +16,31 @@ const url = "https://query.wikidata.org/sparql?flavor=dump";
 const INSTANCE_OF = "P31" as const;
 const SUBCLASS_OF = "P279" as const;
 const COORDINATE_LOCATION = "P625" as const;
+const MEMBER_OF = "P463" as const;
+const UN = "Q1065" as const;
+
+// Q55978503
+// Q22997934
+const elections = `
+SELECT DISTINCT ?item ?title ?seats ?jurisdiction (YEAR(?inception) AS ?start) (YEAR(?dissolution) AS ?end)
+WHERE
+{
+  ?item wdt:${INSTANCE_OF}/wdt:P279* wd:Q1752346 .
+  OPTIONAL { ?item wdt:P1342 ?seats . }
+  OPTIONAL {
+    ?item wdt:P1001 ?j .
+    ?j rdfs:label ?jurisdiction .
+  }
+  OPTIONAL { ?item wdt:P571 ?inception . }
+  OPTIONAL { ?item wdt:P576 ?dissolution . }
+  OPTIONAL { ?item rdfs:label ?title . }
+}
+` as const;
 
 export const unMemberStates = `
 #UN member states
 SELECT DISTINCT ?state  WHERE {
-  ?state wdt:${INSTANCE_OF}/wdt:P279* wd:Q3624078;
+  ?state wdt:${INSTANCE_OF}/wdt:${SUBCLASS_OF}* wd:Q3624078;
          p:P463 ?memberOfStatement.
   ?memberOfStatement a wikibase:BestRank;
                      ps:P463 wd:Q1065.
@@ -38,14 +58,20 @@ const COORD_BLOCK = ({ source = "item" }: { source?: string }) =>
       optional: false,
     },
   } as const);
-const COUNTRY_BLOCK = ({ source = "item" }: { source?: string }) =>
+const COUNTRY_BLOCK = ({
+  source = "item",
+  optional = false,
+}: {
+  source?: string;
+  optional?: boolean;
+}) =>
   ({
     country: {
       sourceKey: source,
       pCode: "P17",
       valueKey: "?country",
       joinChar: ".",
-      optional: false,
+      optional,
     },
   } as const);
 const TIME_PERIOD_BLOCK = ({
@@ -93,7 +119,79 @@ export const parties = {
     },
   },
 } as const;
+export const sovereigns = {
+  mainValue: "wd:Q3624078",
+  includeSubclasses: true,
+  query: {
+    ideology: {
+      sourceKey: "item",
+      pCode: "P1142",
+      valueKey: "?ideology",
+      joinChar: ".",
+      optional: true,
+    },
+  },
+} as const;
+// TODO get the 'of'
+export const independenceDeclarations = {
+  mainValue: "wd:Q1464916",
+  // includeSubclasses: true,
+  query: {
+    ...COUNTRY_BLOCK({ optional: true }),
+    // ...TIME_PERIOD_BLOCK({}),
+    // ideology: {
+    //   sourceKey: "item",
+    //   pCode: "P1142",
+    //   valueKey: "?ideology",
+    //   joinChar: ".",
+    //   optional: true,
+    // },
+  },
+} as const;
+export const pmcs = {
+  // mutiny (Q511866)
+  // rebellion (Q124734)
+  // civil war (Q8465)
+  mainValue: "wd:Q1057214",
+  // includeSubclasses: true,
+  query: {
+    ...COUNTRY_BLOCK({ optional: true }),
 
+    conflict: {
+      sourceKey: "item",
+      pCode: "P607",
+      valueKey: "?conflict",
+      joinChar: ".",
+      optional: true,
+    },
+  },
+} as const;
+// abandoned railway (Q357685) in lieu of end date?
+export const railways = {
+  mainValue: "wd:Q728937",
+  includeSubclasses: true,
+  query: {
+    ...COUNTRY_BLOCK({ optional: true }),
+    speedLimit: {
+      sourceKey: "item",
+      pCode: "P3086",
+      valueKey: "?speedLimit",
+      joinChar: ".",
+      optional: true,
+    },
+    connectsWith: {
+      sourceKey: "item",
+      pCode: "P2789",
+      valueKey: "?connectsWith",
+      joinChar: ".",
+      optional: true,
+    },
+  },
+  // speed limit (P3086)
+} as const;
+
+// is this useful?
+// @TODO modularize - could be useful for pandemic times
 export const hospitals = {
   mainValue: "wd:Q16917",
   includeSubclasses: true,
@@ -113,6 +211,20 @@ export const mines = {
       valueKey: "?produces",
       joinChar: ".",
       optional: false,
+    },
+  },
+} as const;
+export const newsAgencies = {
+  mainValue: "wd:Q192283",
+  includeSubclasses: true,
+  query: {
+    ...COUNTRY_BLOCK({}),
+    website: {
+      sourceKey: "item",
+      pCode: "P856",
+      valueKey: "?website",
+      joinChar: ".",
+      optional: true,
     },
   },
 } as const;
@@ -144,63 +256,20 @@ const getAllSubcategoriesOf = (code: QCode<number>) =>
     includeSubclasses: true,
     query: {},
   } as const);
+const getInstancesOf = (code: QCode<number>) =>
+  ({
+    mainValue: `wd:${code}`,
+    query: {},
+  } as const);
 export const minerals = getAllSubcategoriesOf("Q889659");
 export const metals = getAllSubcategoriesOf("Q11426");
 export const rocks = getAllSubcategoriesOf("Q8063");
 export const colonies = getAllSubcategoriesOf("Q133156");
+export const revolutions = getAllSubcategoriesOf("Q10931");
 export const militaryAlliances = getAllSubcategoriesOf("Q1127126");
-// metallic material (Q1924900)
-// Q467011 invasion
-// Q2001676 military offensive
-// military campaign (Q831663)
-// perpetual war (Q1469686)
-// participant (P710)
-
-// proxy war (Q864113)
-// military intervention (Q5919191)
-// intervention (Q1168287)
-// war (Q198)
-// armed conflict (Q350604)
-// violent conflict (Q115431196)
-// humanitarian intervention (Q1143267)
-// world war (Q103495)
-// religious war (Q1827102)
-// kingdom (Q417175)
-// colonial power (Q20181813)
-// vassal state (Q1371288)
-// puppet state (Q208164)
-// client state (Q1151405)
-// great power (Q185145)
-// state with limited recognition (Q15634554)
-// historical unrecognized state (Q99541706)
-// government in exile (Q678116)
-// regime (Q5589178)
-// colony (Q133156)
-
-// official currency (P38)
-// capital (P36)
-// official language (P37)
-// has part(s) (P527)
-// followed by (P156) (for historical countries)
-// follows (P155)
-// replaced by (P1366)
-// replaces (P1365) (' Use "follows" (P155) if the previous item was not replaced or predecessor and successor are identical')
-// official religion (P3075)
-const query = `
-SELECT DISTINCT ?item ?title ?seats ?jurisdiction (YEAR(?inception) AS ?start) (YEAR(?dissolution) AS ?end)
-WHERE
-{
-  ?item wdt:${INSTANCE_OF}/wdt:P279* wd:Q1752346 .
-  OPTIONAL { ?item wdt:P1342 ?seats . }
-  OPTIONAL {
-    ?item wdt:P1001 ?j .
-    ?j rdfs:label ?jurisdiction .
-  }
-  OPTIONAL { ?item wdt:P571 ?inception . }
-  OPTIONAL { ?item wdt:P576 ?dissolution . }
-  OPTIONAL { ?item rdfs:label ?title . }
-}
-` as const;
+// this ones huge, pretty small in terms of usefulness
+// export const roads = getAllSubcategoriesOf("Q34442");
+export const regimeChanges = getInstancesOf("Q1673271");
 
 // TODO map query to result validator
 // r = requests.get(url, params = {'format': 'json', 'query': query})
@@ -247,12 +316,12 @@ function buildQueryString<
     })
     .join("\n") as JoinStringArray<MapArrayOp<TKeys, TValueMaps>, "\n">;
   return `SELECT ?item ${returnKeys}
-WHERE {
-?item wdt:${INSTANCE_OF}${
+    WHERE {
+      ?item wdt:${INSTANCE_OF}${
     includeSubclasses ? `/wdt:${SUBCLASS_OF}*` : ""
   } ${mainValueKey} .
-${filterLines}
-}` as QueryString<TRefs, TKeys, TValueKey, TValueMaps>;
+      ${filterLines}
+    }` as QueryString<TRefs, TKeys, TValueKey, TValueMaps>;
 }
 type DBDTTZ<
   TYear extends number = number,
@@ -282,6 +351,7 @@ type WDDTTZResponseElement = WDResponseElement<
   "http://www.w3.org/2001/XMLSchema#dateTime"
 >;
 type WDIdRefResponseElement = WDResponseElement<"uri", CodeURI>;
+type WDURLResponseElement = WDResponseElement<"uri", `https://${string}`>;
 type LatLonString<
   TLatLon extends { lat: number; lon: number } = { lat: number; lon: number }
 > = `Point(${TLatLon["lon"]} ${TLatLon["lat"]})`;
@@ -293,6 +363,7 @@ type CoordinateResponseElement = WDResponseElement<
 type AvailableResponseElements =
   | WDDTTZResponseElement
   | WDIdRefResponseElement
+  | WDURLResponseElement
   | CoordinateResponseElement;
 export type GenericWDElement<TKeys extends (string | number | symbol)[]> = {
   [key in TKeys[number]]: WDResponseElement;
@@ -339,7 +410,7 @@ export async function buildQueryStringAndPost<
     includeSubclasses
   );
 
-  console.log("TEST123", wars);
+  console.log("TEST123", builtStr);
 
   const result: RawResponseFromWD<TRefs, TKeys> = await axios.get(url, {
     params: { query: builtStr, format: "json" },
@@ -368,7 +439,7 @@ function ValidateDataContents<
     Object.fromEntries(
       Object.entries(val).map(([kk, vv]) => {
         const [k, v] = [kk, vv] as [string, WDResponseElement];
-        if (v["type"] === "uri") {
+        if (vIsQCode(v)) {
           const splitVal = (v["value"] as string).split("/");
           return [k, { ...v, value: splitVal[splitVal.length - 1] }];
         }
@@ -376,7 +447,18 @@ function ValidateDataContents<
       })
     )
   );
+
   // return array(object<Struct<TDatum>>({}));
+}
+export function vIsQCode(v: {
+  type: AllowedWDTypes;
+  value: unknown;
+  datatype: null;
+}) {
+  return (
+    v["type"] === "uri" &&
+    (v["value"] as string).startsWith("http://www.wikidata.org/entity/Q")
+  );
 }
 function ValidateQCodes(
   results: {
@@ -399,11 +481,11 @@ function ValidateQCodes(
 export function buildQueryForQCodeNames(qCodes: QCode<number>[]) {
   const test = qCodes.join(" ");
   const val = `SELECT DISTINCT ?item ?itemLabel
-  WHERE
-  {
-      VALUES ?item {${qCodes.map((code) => `wd:${code}`).join(" ")}}
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } 
-  }`;
+      WHERE
+      {
+        VALUES ?item {${qCodes.map((code) => `wd:${code}`).join(" ")}}
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } 
+      }`;
 
   return val;
 }
@@ -416,6 +498,7 @@ export async function getQCodeNames(qCodes: QCode<number>[]) {
   const resultIsOk = (res: any) => {
     return res["status"] === 200;
   };
+  // TODO im sure theres a better way to lookup that wouldnt need to be batched. I dont know it
   while (currentChunk < numChunks) {
     const query = buildQueryForQCodeNames(
       qCodes.slice(currentChunk * chunkSize, (currentChunk + 1) * chunkSize)
@@ -438,3 +521,7 @@ export async function getQCodeNames(qCodes: QCode<number>[]) {
 function coallesceItems(originalArray: object[], keysToCoallesce: string[]) {
   originalArray;
 }
+// TODO
+// https://www.crisisgroup.org/crisiswatch/database
+// https://en.wikinews.org/wiki/Category:Category
+// maybe do something with the linked names in a given wikinews article?
