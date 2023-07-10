@@ -7,6 +7,7 @@ import {
   colonies,
   getQCodeNames,
   independenceDeclarations,
+  internationalOrganizations,
   metals,
   militaryAlliances,
   minerals,
@@ -45,6 +46,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   newsAgencies,
   mines,
   regimeChanges,
+  internationalOrganizations,
   railways,
   independence: independenceDeclarations,
   parties,
@@ -59,21 +61,26 @@ program
   .version("1.0.0")
   //   TODO come up w better name ('OpenGeoPolitics'?)
   .description("A CLI for building data for geopolitics app")
-  .option("-g, --get  [value...]", "Get data from wikidata", "all")
+  .option("-g, --get  [value...]", "Get data from wikidata", undefined)
   .action(async ({ get }) => {
-    console.log("Connecting to WikiData...");
+    if (get === undefined) {
+      console.log("Please supply a query name, or '*' to get all");
+      return;
+    }
+    console.log("Connecting to WikiData...", get);
     // make sure we can connect before trying anything
     const safeGet =
-      get === "all" || get === true ? Object.keys(availableQueries) : get;
+      get === "*" || get === true ? Object.keys(availableQueries) : get;
     if (
       !intersectSets(
-        new Set([...Object.keys(availableQueries), "all"]),
+        new Set([...Object.keys(availableQueries)]),
         new Set([...safeGet])
       ).size === safeGet.length
     ) {
       errorLog("Invalid Query Choice");
       return;
     }
+    console.log("Query: ", safeGet, availableQueries[safeGet]);
 
     for (const name of safeGet) {
       const data = await buildQueryStringAndPost(
@@ -82,7 +89,6 @@ program
         availableQueries[name].query,
         availableQueries[name].includeSubclasses || false
       );
-      console.log("TEST123");
 
       if (data === null) {
         errorLog();

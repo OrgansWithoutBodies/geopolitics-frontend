@@ -1,3 +1,4 @@
+yarn recursive
 render period different from singleton
 connect w django rest api
 generate openapi schema/look into other paradigm
@@ -10,3 +11,4 @@ Show trade between countries when both highlighted
 Abstract a shared tooltip component (query-driven?)
 map component 
 initial network placement
+maybe consider https://react-styleguidist.js.org/

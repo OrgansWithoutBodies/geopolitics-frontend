@@ -7,7 +7,6 @@ import {
   TileLayer,
   useMapEvents,
 } from "react-leaflet";
-import { BilateralRelation } from "./bilateralRelations";
 import {
   CountryCode,
   CountryHeartMap,
@@ -17,7 +16,7 @@ import {
   LonLat,
   RegionColorMap,
 } from "./mapTypes";
-import { ArrV2, ObjV2 } from "./types";
+import { ArrV2, HexStr, ObjV2 } from "./types";
 // TODO filter by strength
 function positionLine(
   partnerA: CountryCode,
@@ -73,6 +72,7 @@ function AntimeridianSafePolyLine({
           <Polyline
             key={`${partnerA}-${partnerB}-${ii}`}
             positions={line}
+            weight={1}
             color={color}
           ></Polyline>
         );
@@ -91,6 +91,14 @@ const capitalCityPositionByCode = (
 
   return coords;
 };
+export type HighlightSpecification<TCountryLiterals extends string> = {
+  highlightedCountries: TCountryLiterals[];
+  highlightColor: HexStr;
+};
+
+export type HighlightPartition<TCountryLiterals extends string> =
+  HighlightSpecification<TCountryLiterals>[];
+
 type MapContentsType<TCountryLiterals extends string> = {
   countries: { geometry: GeoJsonGeometryGeneric; key: TCountryLiterals }[];
   countryToRegion: CountryRegionLookup<TCountryLiterals>;
@@ -98,15 +106,18 @@ type MapContentsType<TCountryLiterals extends string> = {
   regionColorMap?: RegionColorMap;
   bilateralRelations?: BilateralRelation[];
   countryHeartMap?: CountryHeartMap;
+  highlights?: HighlightPartition<TCountryLiterals>;
 };
 
 export function MapContents<TCountryLiterals extends string>({
   bilateralRelations,
   countries,
+  // deprecated?
   regionColorMap,
   countryHeartMap,
   countryToName,
   countryToRegion,
+  highlights,
 }: MapContentsType<TCountryLiterals>): JSX.Element {
   const [visibleRelations, setVisibleRelations] = useState<
     BilateralRelation[] | undefined
@@ -128,6 +139,16 @@ export function MapContents<TCountryLiterals extends string>({
     },
   });
 
+  function getHighlightColor(key: TCountryLiterals): `#${string}` | "white" {
+    // regionColorMap
+    //           ? regionColorMap[countryToRegion[key]]
+    //           :
+    return (
+      highlights?.find((highlightedSpec) =>
+        highlightedSpec.highlightedCountries.includes(key)
+      )?.highlightColor || "white"
+    );
+  }
   return (
     <>
       <TileLayer
@@ -139,10 +160,12 @@ export function MapContents<TCountryLiterals extends string>({
         // TODO weird tiling? Vectormap
         <GeoJSON
           key={`geo-${key}`}
+          // TODO 'fill strategy'?
           style={{
-            fillColor: regionColorMap
-              ? regionColorMap[countryToRegion[key]]
-              : "white",
+            fillColor: getHighlightColor(key),
+            fillOpacity: 0.9,
+            weight: 1,
+            color: "gray",
           }}
           data={geometry}
         >
@@ -186,6 +209,7 @@ export function WorldMap<TCountryLiterals extends string>({
         center={center}
         zoom={2}
         scrollWheelZoom={true}
+        zoomControl={false}
         // maxBoundsViscosity={1}
       >
         <MapContents {...contents} />

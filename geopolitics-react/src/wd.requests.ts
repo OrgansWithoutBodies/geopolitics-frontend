@@ -12,6 +12,7 @@ import {
   WDPoliticalPartyDBEntry,
 } from "./wd.types";
 
+const url = "https://query.wikidata.org/sparql?flavor=dump";
 const INSTANCE_OF = "P31" as const;
 const SUBCLASS_OF = "P279" as const;
 const COORDINATE_LOCATION = "P625" as const;
@@ -147,22 +148,6 @@ export const independenceDeclarations = {
     // },
   },
 } as const;
-export const internationalOrganizations = {
-  // mutiny (Q511866)
-  // rebellion (Q124734)
-  // civil war (Q8465)
-  mainValue: "wd:Q484652",
-  // includeSubclasses: true,
-  query: {
-    hasParts: {
-      sourceKey: "item",
-      pCode: "P527",
-      valueKey: "?hasParts",
-      joinChar: ".",
-      optional: true,
-    },
-  },
-} as const;
 export const pmcs = {
   // mutiny (Q511866)
   // rebellion (Q124734)
@@ -214,7 +199,6 @@ export const hospitals = {
     ...COORD_BLOCK({}),
   },
 } as const;
-
 export const mines = {
   mainValue: "wd:Q820477",
   includeSubclasses: true,
@@ -398,7 +382,6 @@ export type RawResponseFromWD<
 };
 type Test = RawResponseFromWD<WDPoliticalPartyDBEntry, ["country"]>;
 
-const defaultUrl = "https://query.wikidata.org/sparql?flavor=dump";
 export async function buildQueryStringAndPost<
   TRefs extends DBResults2NF,
   TKeys extends (keyof TRefs)[],
@@ -419,9 +402,7 @@ export async function buildQueryStringAndPost<
   keyList: TKeys,
   mainValueKey: TValueKey,
   valueMaps: TValueMaps,
-  includeSubclasses = false,
-  // in case we want to build a sparql db locally, override here
-  url = defaultUrl
+  includeSubclasses = false
 ) {
   const builtStr = buildQueryString(
     keyList as readonly string[],
@@ -429,6 +410,8 @@ export async function buildQueryStringAndPost<
     valueMaps,
     includeSubclasses
   );
+
+  console.log("TEST123", builtStr);
 
   const result: RawResponseFromWD<TRefs, TKeys> = await axios.get(url, {
     params: { query: builtStr, format: "json" },
@@ -507,7 +490,7 @@ export function buildQueryForQCodeNames(qCodes: QCode<number>[]) {
 
   return val;
 }
-export async function getQCodeNames(qCodes: QCode<number>[], url = defaultUrl) {
+export async function getQCodeNames(qCodes: QCode<number>[]) {
   const chunkSize = 500;
   const numChunks = Math.ceil(qCodes.length / chunkSize);
   let currentResults: any[] = [];

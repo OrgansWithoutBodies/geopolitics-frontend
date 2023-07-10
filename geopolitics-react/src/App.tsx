@@ -2,17 +2,101 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import "./App.css";
 
 import { useEffect, useRef, useState } from "react";
-import { countryInfo } from "./countryData";
-import { QuotedText } from "./links/QuotedText";
 import {
   CountryCode,
   CountryInfoKey,
   CountryNameLookup,
   CountryRegionLookup,
   RegionColorMap,
-} from "./mapTypes";
+} from "../dataPrep/src/mapTypes";
+import { HighlightSpecification } from "./WorldMap";
+import { interpolateHexStrings } from "./colorTools";
+import { countryInfo } from "./countryData";
 import { ObjV2 } from "./types";
-import { buildQueryStringAndPost } from "./wd.requests";
+const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
+
+const intersectSets = (a: Set<any>, b: Set<any>) =>
+  new Set([...a].filter((i) => b.has(i)));
+const notSet = (a: Set<any>, U: Set<any>) =>
+  new Set([...U].filter((i) => !a.has(i)));
+// subtract a - b
+const subtractSets = (a: Set<any>, b: Set<any>, U: Set<any>) =>
+  intersectSets(a, notSet(b, U));
+``;
+
+type HighlightRecord<TKey extends string> = Record<
+  TKey,
+  HighlightSpecification<CountryCode>
+>;
+
+function IntersectPartitions<TKeyA extends string, TKeyB extends string>(
+  partitionA: HighlightRecord<TKeyA>,
+  partitionB: HighlightRecord<TKeyB>,
+  nameA: Readonly<string> = "A",
+  nameB: Readonly<string> = "B"
+): HighlightRecord<
+  `${TKeyA}-${TKeyB}` | `${typeof nameA}:${TKeyA}` | `${typeof nameB}:${TKeyB}`
+> {
+  const allPartitionA = Object.values(partitionA)
+    .map(
+      (val) => (val as HighlightSpecification<CountryCode>).highlightedCountries
+    )
+    .flat() as CountryCode[];
+  const allPartitionB = Object.values(partitionB)
+    .map(
+      (val) => (val as HighlightSpecification<CountryCode>).highlightedCountries
+    )
+    .flat() as CountryCode[];
+
+  const partitionsFromIntersections = Object.keys(partitionA)
+    .map((valA) => {
+      return Object.keys(partitionB).map((valB) => {
+        return [
+          `${valA}-${valB}`,
+          {
+            highlightedCountries: getIntersectionsBetween(
+              valA,
+              valB,
+              partitionA,
+              partitionB
+            ),
+            highlightColor: interpolateHexStrings(
+              partitionA[valA as TKeyA].highlightColor,
+              partitionB[valB as TKeyB].highlightColor
+            ),
+          },
+        ];
+      });
+    })
+    .flat();
+
+  const entriesInAButNotB = Object.keys(partitionA).map((valA) => [
+    `${nameA}:${valA}`,
+    {
+      highlightedCountries: getSubtraction(
+        partitionA[valA as TKeyA].highlightedCountries as CountryCode[],
+        allPartitionB
+      ),
+      highlightColor: partitionA[valA as TKeyA].highlightColor,
+    },
+  ]);
+  const entriesInBButNotA = Object.keys(partitionB).map((valB) => [
+    `${nameB}:${valB}`,
+    {
+      highlightedCountries: getSubtraction(
+        partitionB[valB as TKeyB].highlightedCountries as CountryCode[],
+        allPartitionA
+      ),
+      highlightColor: partitionB[valB as TKeyB].highlightColor,
+    },
+  ]);
+
+  return Object.fromEntries([
+    ...partitionsFromIntersections,
+    ...entriesInAButNotB,
+    ...entriesInBButNotA,
+  ]);
+}
 function App() {
   // const ref = useRef<ImperativePanelGroupHandle>(null);
 
@@ -61,31 +145,32 @@ function App() {
       optional: true,
     },
   };
+  type MembershipStatus = "current" | "applied" | "interest";
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
   const [paneSize, setPaneSize] = useState<number | null>(null);
-  void buildQueryStringAndPost(
-    "",
-    ["country", "coords", "ideology", "start", "end"],
-    "wd:Q7278",
-    mapVals
-  );
   useEffect(() => {
-    console.log("TEST123-effect");
     if (timelinePanelRef.current) {
       setPaneSize(timelinePanelRef.current.getSize());
     }
   }, [timelinePanelRef.current?.getSize]);
   const canvasSize: ObjV2 = { x: 1000, y: 300 };
   const regionColorMap: RegionColorMap = {
-    Africa: "green",
-    Americas: "yellow",
+    Africa: "white",
+    Americas: "white",
     Antarctica: "white",
-    Asia: "blue",
-    Europe: "cyan",
-    Oceania: "red",
+    Asia: "white",
+    Europe: "white",
+    Oceania: "white",
   };
+  // const regionColorMap: RegionColorMap = {
+  //   Africa: "green",
+  //   Americas: "yellow",
+  //   Antarctica: "white",
+  //   Asia: "blue",
+  //   Europe: "cyan",
+  //   Oceania: "red",
+  // };
   const [year, setYear] = useState(2000);
-
   const mapCountryData = (key: CountryInfoKey, value: CountryInfoKey) =>
     Object.fromEntries(
       countryInfo.map((country) => [country[key], country[value]])
@@ -104,8 +189,8 @@ function App() {
         <div onClick={() => setYear(year + 1)}>+</div>
         <div onClick={() => setYear(year - 1)}>-</div>
       </div>
-      <QuotedText />
-      {/* <WorldMap
+      {/* <QuotedText /> */}
+      {/* <WorldMap<CountryCode>
         container={{
           sizePx: { x: 1024, y: 780 },
           center: [0, 0],
@@ -115,11 +200,14 @@ function App() {
             key,
             geometry,
           })),
+
+
+          ],
           countryToRegion,
           countryToName,
           regionColorMap,
+          // bilateralRelations,
           countryHeartMap: Capitals,
-          bilateralRelations,
         }}
       /> */}
     </>
@@ -148,6 +236,27 @@ function App() {
     //   </div>
     // </div>
   );
+}
+function getIntersectionsBetween(
+  keyA: keyof typeof partitionA,
+  keyB: keyof typeof partitionB,
+  partitionA,
+  partitionB
+): CountryCode[] {
+  return [
+    ...intersectSets(
+      new Set(partitionA[keyA].highlightedCountries),
+      new Set(partitionB[keyB].highlightedCountries)
+    ),
+  ];
+}
+function getSubtraction(
+  aList: CountryCode[],
+  subList: CountryCode[]
+): CountryCode[] {
+  return [
+    ...subtractSets(new Set(aList), new Set(subList), new Set(allCountryCodes)),
+  ];
 }
 
 export default App;

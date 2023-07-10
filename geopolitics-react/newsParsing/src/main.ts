@@ -118,9 +118,10 @@ function makeParserForFeed() {
   return parser;
 }
 const feedsToGet = [
-  "https://en.wikinews.org/w/index.php?title=Special:NewsFeed&feed=atom&count=200" as const,
+  "https://en.wikinews.org/w/index.php?title=Special:NewsFeed&feed=atom" as const,
 ];
 
+// TODO https://github.com/gipplab/news-story-identification
 type WDInfo = { code: QCode; title: string };
 
 async function getData(feeds: URL[]): Promise<
@@ -333,6 +334,7 @@ async function parseWikipediaCurrentEvents({ y, m, d }: DateObj) {
   const urlStr = `https://en.wikipedia.org/wiki/Portal:Current_events/${y}_${m}_${d}`;
   const response = await axios.get(urlStr);
   if (response.status !== 200) {
+    console.log("TEST123");
     return;
   }
   const event = htmlParser(response.data);
@@ -405,6 +407,7 @@ async function parseWikipediaCurrentEvents({ y, m, d }: DateObj) {
           ),
         };
       }
+      // this seems to be where the missing stories come from
       console.log("TEST123-notelement", li.text);
       return null;
     });
@@ -495,7 +498,24 @@ const parseWikipediaCurrentEventsBetweenDates = async (
 };
 
 parseWikipediaCurrentEventsBetweenDates(
-  { y: 2020, m: "January", d: 1 },
-  { y: 2023, m: "January", d: 1 }
+  { y: 2010, m: "January", d: 1 },
+  { y: 2020, m: "January", d: 1 }
+  // { y: 2023, m: "January", d: 1 }
   // { y: 2023, m: "June", d: 25 }
 );
+function compareDomains(domainA: string, domainB: string) {
+  const sectionsA = domainA.replace("www.", "").split(".");
+  const sectionsB = domainB.replace("www.", "").split(".");
+
+  const minNumSections = Math.min(sectionsA.length, sectionsB.length);
+  let currentSection = 0;
+  while (currentSection < minNumSections) {
+    const thisSectionMatches =
+      sectionsA[currentSection] === sectionsB[currentSection];
+    if (!thisSectionMatches) {
+      return false;
+    }
+    currentSection += 1;
+  }
+  return true;
+}

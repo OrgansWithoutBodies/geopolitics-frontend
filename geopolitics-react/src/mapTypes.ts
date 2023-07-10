@@ -1,6 +1,6 @@
-import { Capitals } from "../out/capitals";
-import { countryInfo } from "../out/countryData";
-import { CShapes } from "../out/cshapes";
+import { Capitals } from "./capitals";
+import { countryInfo } from "./countryData";
+import { CShapes } from "./cshapes";
 type GeoJsonTypes =
   | "Point"
   | "Polygon"

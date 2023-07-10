@@ -608,11 +608,6 @@ ajv@^6.10.0, ajv@^6.12.4:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
-amdefine@~0.0.4:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-0.0.8.tgz#34dc8c981e6acb3be1853bef8f0ec94a39d55ba0"
-  integrity sha512-mDPHAbiIk4wSDjZFz0YFuwquVPJMj1vm9n6QONCN2bL0WOtNiTRHldplTWlyhJrDlpqe7lAc7MJfSyZJ4sqYhg==
-
 ancestors@0.0.3:
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/ancestors/-/ancestors-0.0.3.tgz#124eb944447d68b302057047d15d077a9da5179d"
@@ -1293,13 +1288,6 @@ json5@^2.2.2:
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/json5/-/json5-2.2.3.tgz#78cd6f1a19bdc12b73db5ad0c61efd66c1e29283"
   integrity sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==
-
-know-your-http-well@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/know-your-http-well/-/know-your-http-well-0.5.0.tgz#5d039003104799a9d77fc2998cfd539675b256be"
-  integrity sha512-UITbbv7opEWvgPMxHtgJIIhTnCcJIHYRKm0ozPy/IWGMymBriRRY+S9zIT51js+RmTTxhoJKxoYSS6wped18Yg==
-  dependencies:
-    amdefine "~0.0.4"
 
 konva@^9.0.1:
   version "9.0.1"
