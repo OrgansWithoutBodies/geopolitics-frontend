@@ -1,45 +1,7 @@
+import { GeoJsonGeometryPoint } from "react-konva-components/src";
 import { Capitals } from "../out/capitals";
 import { countryInfo } from "../out/countryData";
 import { CShapes } from "../out/cshapes";
-type GeoJsonTypes =
-  | "Point"
-  | "Polygon"
-  | "FeatureCollection"
-  | "Feature"
-  | "MultiPolygon"
-  | "LineString"
-  | "MultiLineString"
-  | "MultiPoint"
-  | "GeometryCollection";
-// NA: {
-//   properties: {
-//     country: "Asia &amp; Pacific",
-//     tld: "asia",
-//     iso2: "AP",
-//   },
-//   geometry: {
-//     coordinates: [0, 0],
-//     type: "Point",
-//   },
-//   id: "AP",
-// },
-// TODO 'Conflict Zone'/Disputed territory
-export type LatLon = [lat: number, lon: number];
-export type LonLat = [lon: number, lat: number];
-export type GeoJsonGeometryGeneric<
-  TType extends GeoJsonTypes = GeoJsonTypes,
-  TCoord = any
-> = {
-  geometry: { type: TType; coordinates: TCoord };
-};
-export type GeoJsonGeometryPolygon = GeoJsonGeometryGeneric<
-  "Polygon",
-  LatLon[][]
->;
-export type GeoJsonGeometryPoint = GeoJsonGeometryGeneric<
-  "Point",
-  LatLon | Readonly<[number, number]>
->;
 
 export type Country = (typeof countryInfo)[number]["name"];
 export type Regions = (typeof countryInfo)[number]["region"];
@@ -65,7 +27,4 @@ export type CountryHeartMap = Record<CountryCode, GeoJsonGeometryPoint>;
 
 // type CapitalProps = (typeof Capitals)[CapitalCityCountryCodes]["properties"];
 
-// export type CapitalCityName = keyof CapitalProps extends "city"
-//   ? CapitalProps["city"]
-//   : "";
 export type CShapesType = (typeof CShapes)["features"][number];

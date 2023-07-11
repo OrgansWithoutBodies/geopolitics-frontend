@@ -1,5 +1,6 @@
-import { KonvaSpace, NodeID, ObjV2, TimeSpace } from "../types";
-import { dataStore, DataStore } from "./data.store";
+import { KonvaSpace, ObjV2 } from "type-library";
+import { NodeID, TimeSpace } from "../types";
+import { DataStore, dataStore } from "./data.store";
 
 export class DataService {
   public setInitialDateFilter(initialDateFilter: TimeSpace | null) {

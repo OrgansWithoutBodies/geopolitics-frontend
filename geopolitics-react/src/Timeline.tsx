@@ -10,21 +10,21 @@ import {
   Stage,
   Text,
 } from "react-konva";
-import { dataService } from "./data/data.service";
-import { orderedNumbers } from "./orderedNumbers";
+import { HistoricalEvent } from "react-konva-components/src";
+import { ObjV2 } from "type-library";
 import {
   TimelineContext,
   TimelineVariables,
   useTimelineContext,
 } from "./TimelineContext";
+import { dataService } from "./data/data.service";
+import { orderedNumbers } from "./orderedNumbers";
 import {
   EventID,
-  HistoricalEvent,
-  ObjV2,
-  periodIsSegmentGuard,
   RenderableEvent,
-  TimelineSpace,
   TimeSpace,
+  TimelineSpace,
+  periodIsSegmentGuard,
 } from "./types";
 import { useData } from "./useAkita";
 

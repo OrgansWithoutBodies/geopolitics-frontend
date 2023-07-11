@@ -2,6 +2,8 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import "./App.css";
 
 import { useEffect, useRef, useState } from "react";
+import { HighlightSpecification } from "react-konva-components/src";
+import { ObjV2 } from "type-library";
 import {
   CountryCode,
   CountryInfoKey,
@@ -9,10 +11,8 @@ import {
   CountryRegionLookup,
   RegionColorMap,
 } from "../dataPrep/src/mapTypes";
-import { HighlightSpecification } from "./WorldMap";
 import { interpolateHexStrings } from "./colorTools";
 import { countryInfo } from "./countryData";
-import { ObjV2 } from "./types";
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
 
 const intersectSets = (a: Set<any>, b: Set<any>) =>

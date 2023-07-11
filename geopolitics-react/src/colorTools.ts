@@ -2,10 +2,10 @@
  * TODO - refactor this as a (jQuery?) plugin!
  **/
 
-import { HexStr, HexTripleNumber } from "./types";
+import { HexString, HexTripleNumber } from "./types";
 
 // Converts a #ffffff hex string into an [r,g,b] array
-function h2r(hex: HexStr): HexTripleNumber | null {
+function h2r(hex: HexString): HexTripleNumber | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? ([
@@ -17,7 +17,7 @@ function h2r(hex: HexStr): HexTripleNumber | null {
 }
 
 // Inverse of the above
-function r2h(rgb: HexTripleNumber): HexStr {
+function r2h(rgb: HexTripleNumber): HexString {
   return `#${((1 << 24) + (rgb[0] << 16) + (rgb[1] << 8) + rgb[2])
     .toString(16)
     .slice(1)}`;
@@ -113,9 +113,9 @@ function _interpolateColor(
 // };
 
 export function interpolateHexStrings(
-  hexStringA: HexStr,
-  hexStringB: HexStr
-): HexStr {
+  hexStringA: HexString,
+  hexStringB: HexString
+): HexString {
   const tripleA = h2r(hexStringA);
   const tripleB = h2r(hexStringB);
   if (tripleA === null || tripleB === null) {

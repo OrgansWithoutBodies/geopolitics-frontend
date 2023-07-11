@@ -1,12 +1,8 @@
 import { Store, StoreConfig } from "@datorama/akita";
-import type {
-  EventID,
-  HistoricalEvent,
-  NetworkEdge,
-  NetworkNode,
-  NodeID,
-  TimeSpace,
-} from "../types";
+import { NetworkEdge, NetworkNode } from "react-konva-components/src";
+import { WDType } from "../../dataPrep/out/internationalOrganizations.data";
+import { QCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
+import type { EventID, HistoricalEvent, NodeID, TimeSpace } from "../types";
 type NodeLookup = Record<NodeID, NetworkNode>;
 const nodesLookup: NodeLookup = {
   [0 as NodeID]: {
@@ -29,6 +25,8 @@ export interface DataState {
   finalDateFilter: TimeSpace | null;
   networkNodes: NodeLookup;
   networkEdges: NetworkEdge[];
+  internationalOrgs: typeof WDType;
+  internationalOrgsQCodes: typeof QCodes;
 }
 
 // TODO persist
@@ -36,6 +34,8 @@ export function createInitialState(): DataState {
   return {
     networkNodes: nodesLookup,
     networkEdges: edges,
+    internationalOrgs: WDType,
+    internationalOrgsQCodes: QCodes,
     events: [
       {
         id: 1 as EventID,

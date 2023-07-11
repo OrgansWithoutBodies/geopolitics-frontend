@@ -1,14 +1,11 @@
 yarn recursive
 render period different from singleton
-connect w django rest api
+connect w django rest api (maybe rust/go backends)
 generate openapi schema/look into other paradigm
 selectable event
 on hover network edge
 windowing system between components (in progress)
-Event Participants that get highlighted when event they participated in is selected/highlight event when they're selected
 treemap component
 Show trade between countries when both highlighted
 Abstract a shared tooltip component (query-driven?)
-map component 
-initial network placement
 maybe consider https://react-styleguidist.js.org/

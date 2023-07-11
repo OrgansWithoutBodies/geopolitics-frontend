@@ -1,49 +1,29 @@
 import { Query } from "@datorama/akita";
-import { combineLatest, map, Observable } from "rxjs";
-import { forceDirectedGraph } from "../layoutNetwork";
+
 import {
-  periodIsSegmentGuard,
-  HexStr,
   HistoricalEvent,
+  forceDirectedGraph,
+  rawNetworkToAdjMat,
+} from "react-konva-components/src";
+import { Observable, combineLatest, map } from "rxjs";
+import {
+  AdjacencyMatrix,
+  HexString,
+  RawNetwork,
+  RenderableNetworkEdge,
+  RenderableNetworkNode,
+} from "type-library";
+import {
   LineSegment,
+  PeriodOrSingleton,
   RenderableEvent,
   SpaceConvertingFunction,
-  TimelineSpace,
   TimeSpace,
-  PeriodOrSingleton,
-  RenderableNetworkEdge,
-  RawNetwork,
-  AdjacencyMatrix,
-  RenderableNetworkNode,
-  Matrix,
+  TimelineSpace,
+  periodIsSegmentGuard,
 } from "../types";
 import { DataState, DataStore, dataStore } from "./data.store";
 
-const createLoL = (dim: number): Matrix<0> =>
-  [...Array.from({ length: dim }).keys()].map(
-    () => [...Array.from({ length: dim }).keys()].fill(0) as 0[]
-  );
-const rawNetworkToAdjMat = (network: RawNetwork): AdjacencyMatrix => {
-  const numNodes = network.nodes.length;
-
-  const adjMat: AdjacencyMatrix = createLoL(numNodes);
-
-  network.nodes.forEach(({ id }, ii) => {
-    const edgesStartingFromThisNode = network.edges
-      .map((edge, ii) => {
-        return { ...edge, index: ii };
-      })
-      .filter((edge) => {
-        return edge.origin === id;
-      });
-    const slice = adjMat[ii];
-    edgesStartingFromThisNode.forEach((edge) => {
-      slice[edge.index] = 1;
-    });
-  });
-  console.log("TEST123-adjMat", adjMat);
-  return adjMat;
-};
 // const adjMatToRawNetwork = (adjMat: AdjacencyMatrix): RawNetwork => {
 //   const numNodes = adjMat.length;
 //   const nodes = new Array(numNodes).keys();
@@ -51,7 +31,7 @@ const rawNetworkToAdjMat = (network: RawNetwork): AdjacencyMatrix => {
 //   return { nodes, edges };
 // };
 
-const getRandomColor = (): HexStr => {
+const getRandomColor = (): HexString => {
   // return "#FFFFFF";
 
   const channelSize = 16;
