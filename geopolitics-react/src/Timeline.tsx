@@ -10,8 +10,12 @@ import {
   Stage,
   Text,
 } from "react-konva";
-import { HistoricalEvent } from "react-konva-components/src";
-import { ObjV2 } from "type-library";
+import {
+  HistoricalEvent,
+  PeriodOrSingleton,
+  TimePeriod,
+} from "react-konva-components/src";
+import type { ObjV2 } from "type-library";
 import {
   TimelineContext,
   TimelineVariables,
@@ -19,15 +23,19 @@ import {
 } from "./TimelineContext";
 import { dataService } from "./data/data.service";
 import { orderedNumbers } from "./orderedNumbers";
-import {
+import type {
   EventID,
   RenderableEvent,
   TimeSpace,
   TimelineSpace,
-  periodIsSegmentGuard,
 } from "./types";
 import { useData } from "./useAkita";
 
+export const periodIsSegmentGuard = (
+  event: PeriodOrSingleton<TimeSpace>
+): event is TimePeriod => {
+  return isNaN(event as any);
+};
 export function TimelineBackground({
   lastDate,
   firstDate,

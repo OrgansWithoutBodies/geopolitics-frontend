@@ -1,4 +1,3 @@
-import * as React from "react";
 import { PanelResizeHandle } from "react-resizable-panels";
 import styles from "./styles.module.css";
 
@@ -20,36 +19,36 @@ export function ResizeHandle() {
   );
 }
 
-const PanelStyles: Record<string, React.CSSProperties> = {
-  ResizeHandleInner: {
-    position: "absolute",
-    top: "0.25em",
-    bottom: "0.25em",
-    left: "0.25em",
-    right: "0.25em",
-    borderRadius: "0.25em",
-    backgroundColor: "var(--background-color)",
-    transition: "background-color 0.2s linear",
-  },
+// const PanelStyles: Record<string, React.CSSProperties> = {
+//   ResizeHandleInner: {
+//     position: "absolute",
+//     top: "0.25em",
+//     bottom: "0.25em",
+//     left: "0.25em",
+//     right: "0.25em",
+//     borderRadius: "0.25em",
+//     backgroundColor: "var(--background-color)",
+//     transition: "background-color 0.2s linear",
+//   },
 
-  // .ResizeHandleOuter {
-  //     flex: 0 0 1.5em;
-  //     position: relative;
-  //     outline: none;
+// .ResizeHandleOuter {
+//     flex: 0 0 1.5em;
+//     position: relative;
+//     outline: none;
 
-  //     --background-color: transparent;
-  //   }
-  //   .ResizeHandleOuter[data-resize-handle-active] {
-  //     --background-color: var(--color-solid-resize-bar-handle);
-  //   }
-  ResizeHandleOuter: {
-    position: "absolute",
-    top: "0.25em",
-    bottom: "0.25em",
-    left: "0.25em",
-    right: "0.25em",
-    borderRadius: "0.25em",
-    backgroundColor: "var(--background-color)",
-    transition: "background-color 0.2s linear",
-  },
-};
+//     --background-color: transparent;
+//   }
+//   .ResizeHandleOuter[data-resize-handle-active] {
+//     --background-color: var(--color-solid-resize-bar-handle);
+//   }
+//   ResizeHandleOuter: {
+//     position: "absolute",
+//     top: "0.25em",
+//     bottom: "0.25em",
+//     left: "0.25em",
+//     right: "0.25em",
+//     borderRadius: "0.25em",
+//     backgroundColor: "var(--background-color)",
+//     transition: "background-color 0.2s linear",
+//   },
+// };

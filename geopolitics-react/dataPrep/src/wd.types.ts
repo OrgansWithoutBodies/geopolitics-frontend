@@ -1,6 +1,5 @@
-import { BrandedNumber } from "./types";
 // TODO overwrite array join/reverse prototypes to have rich typing
-
+import type { BrandedNumber } from "type-library";
 export type WDId<TCategory extends string> = string & {
   __brand: "WDId";
   __category: TCategory;
@@ -8,9 +7,9 @@ export type WDId<TCategory extends string> = string & {
 type Allowed2NFReturnValues = Readonly<
   string | WDId<string> | number | BrandedNumber<string>
 >;
-type Url = string;
-type DateTimeTZString = string;
-type ParsedWDReturnTypes = string | URL | DateTimeTZString;
+// type Url = string;
+// type DateTimeTZString = string;
+// type ParsedWDReturnTypes = string | URL | DateTimeTZString;
 // TODO specify the expected return type per-element?
 export type DBResults2NF = Record<Readonly<string>, Allowed2NFReturnValues>;
 export type WDPoliticalPartyDBEntry<
@@ -213,5 +212,5 @@ export type WDPoliticalParty = FoldDBResults<
 //       : string;
 //   }
 // }
-type Test = JoinStringArray<["a", "b", "c"], " . ">;
-const test = ["a", "b", "c"].join(" . ");
+// type Test = JoinStringArray<["a", "b", "c"], " . ">;
+// const test = ["a", "b", "c"].join(" . ");

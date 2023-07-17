@@ -1,4 +1,4 @@
-import axios, { HttpStatusCode } from "axios";
+import axios, { AxiosResponse, HttpStatusCode } from "axios";
 import {
   CodeURI,
   DBResults2NF,
@@ -9,18 +9,17 @@ import {
   QueryString,
   QueryValueSpec,
   ReturnValKey,
-  WDPoliticalPartyDBEntry,
 } from "./wd.types";
 
-const INSTANCE_OF = "P31" as const;
-const SUBCLASS_OF = "P279" as const;
-const COORDINATE_LOCATION = "P625" as const;
-const MEMBER_OF = "P463" as const;
-const UN = "Q1065" as const;
+export const INSTANCE_OF = "P31" as const;
+export const SUBCLASS_OF = "P279" as const;
+export const COORDINATE_LOCATION = "P625" as const;
+export const MEMBER_OF = "P463" as const;
+export const UN = "Q1065" as const;
 
 // Q55978503
 // Q22997934
-const elections = `
+export const elections = `
 SELECT DISTINCT ?item ?title ?seats ?jurisdiction (YEAR(?inception) AS ?start) (YEAR(?dissolution) AS ?end)
 WHERE
 {
@@ -291,9 +290,6 @@ export const regimeChanges = getInstancesOf("Q1673271");
 // TODO map query to result validator
 // r = requests.get(url, params = {'format': 'json', 'query': query})
 // data = r.json()
-const instanceOfQuery = () => {
-  return ``;
-};
 
 function buildQueryString<
   TRefs extends DBResults2NF,
@@ -377,7 +373,7 @@ type CoordinateResponseElement = WDResponseElement<
   LatLonString,
   "http://www.opengis.net/ont/geosparql#wktLiteral"
 >;
-type AvailableResponseElements =
+export type AvailableResponseElements =
   | WDDTTZResponseElement
   | WDIdRefResponseElement
   | WDURLResponseElement
@@ -396,7 +392,6 @@ export type RawResponseFromWD<
   status: TStatus;
   data: TStatus extends 200 ? { results: { bindings: TRawElement[] } } : object;
 };
-type Test = RawResponseFromWD<WDPoliticalPartyDBEntry, ["country"]>;
 
 const defaultUrl = "https://query.wikidata.org/sparql?flavor=dump";
 export async function buildQueryStringAndPost<
@@ -478,15 +473,19 @@ export function vIsQCode(v: {
     (v["value"] as string).startsWith("http://www.wikidata.org/entity/Q")
   );
 }
-function ValidateQCodes(
-  results: {
-    item: {
-      type: "uri";
-      value: `http://www.wikidata.org/entity/${QCode<number>}`;
-    };
-    itemLabel: { "xml:lang": "en"; type: "literal"; value: string };
-  }[]
-) {
+interface QCodeResult {
+  item: {
+    type: "uri";
+    value: `http://www.wikidata.org/entity/${QCode<number>}`;
+  };
+  itemLabel: {
+    "xml:lang": "en";
+    type: "literal";
+    value: string;
+  };
+}
+
+function ValidateQCodes(results: QCodeResult[]) {
   return Object.fromEntries(
     results.map((val) => {
       const splitVal = val["item"]["value"].split("/");
@@ -497,7 +496,6 @@ function ValidateQCodes(
 }
 
 export function buildQueryForQCodeNames(qCodes: QCode<number>[]) {
-  const test = qCodes.join(" ");
   const val = `SELECT DISTINCT ?item ?itemLabel
       WHERE
       {
@@ -510,10 +508,16 @@ export function buildQueryForQCodeNames(qCodes: QCode<number>[]) {
 export async function getQCodeNames(qCodes: QCode<number>[], url = defaultUrl) {
   const chunkSize = 500;
   const numChunks = Math.ceil(qCodes.length / chunkSize);
-  let currentResults: any[] = [];
+  let currentResults: QCodeResult[] = [];
   let currentChunk = 0;
   // console.log(result.data);
-  const resultIsOk = (res: any) => {
+  const resultIsOk = (
+    res: AxiosResponse<{
+      results: {
+        bindings: QCodeResult[];
+      };
+    }>
+  ) => {
     return res["status"] === 200;
   };
   // TODO im sure theres a better way to lookup that wouldnt need to be batched. I dont know it
@@ -522,9 +526,12 @@ export async function getQCodeNames(qCodes: QCode<number>[], url = defaultUrl) {
       qCodes.slice(currentChunk * chunkSize, (currentChunk + 1) * chunkSize)
     );
 
-    const result = await axios.get(url, {
-      params: { query, format: "json" },
-    });
+    const result = await axios.get<{ results: { bindings: QCodeResult[] } }>(
+      url,
+      {
+        params: { query, format: "json" },
+      }
+    );
     if (!resultIsOk(result)) {
       return null;
     }
@@ -536,9 +543,9 @@ export async function getQCodeNames(qCodes: QCode<number>[], url = defaultUrl) {
   }
   return ValidateQCodes(currentResults);
 }
-function coallesceItems(originalArray: object[], keysToCoallesce: string[]) {
-  originalArray;
-}
+// function coallesceItems(originalArray: object[], keysToCoallesce: string[]) {
+//   originalArray;
+// }
 // TODO
 // https://www.crisisgroup.org/crisiswatch/database
 // https://en.wikinews.org/wiki/Category:Category

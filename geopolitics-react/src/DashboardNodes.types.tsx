@@ -1,24 +1,31 @@
 import {
   HighlightSpecification,
   HistoricalEvent,
-  Network,
   TWorldMapEntity,
 } from "react-konva-components/src";
-import {
+import { Observable } from "rxjs";
+import { NodeID } from "type-library";
+import type {
   GenericArrow,
   HexString,
   KonvaSpace,
   RawNetwork,
   TimeSpace,
   Tree,
-} from "type-library";
-import { PeriodOrSingleton } from "./types";
+} from "type-library/src";
+import { NetworkDashboardNode } from "./ConcreteDashboardNodes";
+import type { PeriodOrSingleton } from "./types";
 
 type TransformNodeType = "";
 type FlavorShape = {
   Tree: { shape: Tree<object> };
+  Boolean: { shape: boolean };
+  String: { shape: string };
+  Number: { shape: number };
   Network: { shape: RawNetwork };
-  MultiModalNetwork: { shape: RawNetwork<{ class: "A" } | { class: "B" }> };
+  MultiModalNetwork: {
+    shape: RawNetwork<{ id: NodeID; class: "A" } | { id: NodeID; class: "B" }>;
+  };
   TimeFilter: { shape: { min: TimeSpace; max: TimeSpace } };
   NodeColorList: { shape: {} };
   MapGeometry: { shape: {} };
@@ -29,12 +36,13 @@ type FlavorShape = {
   OrderedEvents: { shape: {} };
 };
 // TODO maybe 'string list'/'number list'?
-type Flavor = keyof FlavorShape;
+export type Flavor = keyof FlavorShape;
 type FlavorSocket<TFlavor extends Flavor> = { flavor: TFlavor };
 type FlavorJoint<TFlavor extends Flavor> = {
   flavor: TFlavor;
-  //   getJointData: ()=>FlavorShape[TFlavor];
-  jointData: FlavorShape[TFlavor];
+  jointDataObservable: Observable<FlavorShape[TFlavor]>;
+  // getJointData: ()=>FlavorShape[TFlavor];
+  // jointData: FlavorShape[TFlavor];
 };
 // type ZipArrays<
 //   TArrayA extends any[],
@@ -53,6 +61,7 @@ type TransformWidget<
   TOut extends FlavorJoint<TOutFlavor[TOutKeys]> = FlavorJoint<
     TOutFlavor[TOutKeys]
   >
+  // TODO make observable?
 > = (inputs: TIn, outputs: TOut) => TOut;
 
 // TODO optional sockets
@@ -68,7 +77,7 @@ type CoallesceMulimodalNetwork = TransformWidget<
   { in: "MultiModalNetwork" },
   { out: "Network" }
 >;
-type DashboardNodeConnections<TFlavor extends Flavor> = GenericArrow<
+export type DashboardNodeConnection<TFlavor extends Flavor> = GenericArrow<
   FlavorJoint<TFlavor>,
   FlavorSocket<TFlavor>
 >;
@@ -84,50 +93,73 @@ type TNodeComponentArgs<
 export type DataNodeType<
   TOutputs extends Record<string, any>,
   TDataString extends string = string,
-  TComponent extends TNodeComponent<object, TOutputs, object> = TNodeComponent<
-    object,
+  TComponent extends TNodeComponent<null, TOutputs, null> = TNodeComponent<
+    null,
     TOutputs,
-    object
+    null
   >
-> = IGenericNode<TDataString, object, TOutputs, object, TComponent, ["Data"]>;
+> = IGenericNode<TDataString, null, TOutputs, null, TComponent, ["Data"]>;
 export type TNodeComponent<
-  TInputs extends Record<string, any>,
-  TOutputs extends Record<string, any>,
-  TOptions extends Record<string, any>
-> = (args: TNodeComponentArgs<TInputs, TOutputs, TOptions>) => JSX.Element;
+  TInputs extends null | Record<string, any>,
+  TOutputs extends null | Record<string, any>,
+  TOptions extends null | Record<string, any>
+> = (
+  args: TNodeComponentArgs<
+    TInputs extends null ? object : TInputs,
+    TOutputs extends null ? object : TOutputs,
+    TOptions extends null ? object : TOptions
+  >
+) => JSX.Element;
 // TODO tooltip node? or tooltip per-node??
 // TODO plugin architecture
 // TODO 3d node? plugin
 export interface IGenericNode<
   TType extends string = AllowedNodes,
-  TInputs extends Record<string, { flavor: Flavor } & unknown> = Record<
+  TInputs extends null | Record<string, { flavor: Flavor }> = Record<
     string,
-    { flavor: Flavor } & unknown
+    { flavor: Flavor }
   >,
-  TOutputs extends Record<string, { flavor: Flavor } & unknown> = Record<
+  TOutputs extends null | Record<string, { flavor: Flavor }> = Record<
     string,
-    { flavor: Flavor } & unknown
+    { flavor: Flavor }
   >,
-  TOptions extends Record<string, { flavor: Flavor } & unknown> = Record<
+  TOptions extends null | Record<string, { flavor: Flavor }> = Record<
     string,
-    { flavor: Flavor } & unknown
+    { flavor: Flavor }
   >,
+  // Component is only relevant for 'viewable' components - they might still have outputs (think like selections from a viewer)
+  // TODO setSelected as service - anything based on viewer interaction needs access to a mutatable store
+  // TODO 'register dashboard' in query/service
   TComponent extends TNodeComponent<
     TInputs,
     TOutputs,
     TOptions
   > = TNodeComponent<TInputs, TOutputs, TOptions>,
-  TGroup extends string[] = ["Other"]
+  TGroup extends string[] = ["Other"],
+  TFunction extends TInputs extends Record<string, Flavor>
+    ? TOutputs extends Record<string, Flavor>
+      ? TransformWidget<TInputs, TOutputs>
+      : undefined
+    : undefined = TInputs extends Record<string, Flavor>
+    ? TOutputs extends Record<string, Flavor>
+      ? TransformWidget<TInputs, TOutputs>
+      : undefined
+    : undefined
 > {
   type: TType;
   inputs: TInputs;
   outputs: TOutputs;
   options: TOptions;
   Component: TComponent;
-  group: TGroup;
+  group?: TGroup;
+  // maybe deprecate
+  function?: TFunction;
+  functionObservable?: (
+    inputs: Observable<TInputs>[]
+  ) => Observable<TOutputs>[];
 }
 
-export type IMapNode<TEntityKey extends string> = IGenericNode<
+export type IMapNode<TEntityKey extends number> = IGenericNode<
   "Map",
   {
     entities: { flavor: "MapGeometry" } & TWorldMapEntity<TEntityKey>[];
@@ -143,6 +175,7 @@ export type ITimelineNode<TEntityKey extends number> = IGenericNode<
       PeriodOrSingleton<TimeSpace>,
       TEntityKey
     >[];
+    fills: { flavor: "NodeColorList" } & HighlightSpecification<TEntityKey>[];
   },
   { selectedEntities: { flavor: "IdList" } & TEntityKey[] }
 >;
@@ -156,7 +189,7 @@ type AllowedNodes =
   | "TreeMap"
   | "Info"
   | "Settings";
-export type INetworkNode<TEntityKey extends string> = IGenericNode<
+export type INetworkNode<TEntityKey extends number> = IGenericNode<
   "Network",
   {
     entities: { flavor: "Network" } & {
@@ -171,13 +204,14 @@ export type INetworkNode<TEntityKey extends string> = IGenericNode<
       | "circular"
       | "tree"
     );
+    fills: { flavor: "NodeColorList" } & HighlightSpecification<TEntityKey>[];
   },
   { selectedEntities: TEntityKey[] & { flavor: "IdList" } },
-  typeof Network
+  typeof NetworkDashboardNode
 >;
 export type DashboardNodes<
-  TMapEntityKey extends string = string,
-  TNetworkEntityKey extends string = string
+  TMapEntityKey extends number = number,
+  TNetworkEntityKey extends number = number
 > =
   | IMapNode<TMapEntityKey>
   | INetworkNode<TNetworkEntityKey>

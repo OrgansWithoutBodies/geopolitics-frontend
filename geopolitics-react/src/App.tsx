@@ -3,16 +3,9 @@ import "./App.css";
 
 import { useEffect, useRef, useState } from "react";
 import { HighlightSpecification } from "react-konva-components/src";
-import { ObjV2 } from "type-library";
-import {
-  CountryCode,
-  CountryInfoKey,
-  CountryNameLookup,
-  CountryRegionLookup,
-  RegionColorMap,
-} from "../dataPrep/src/mapTypes";
 import { interpolateHexStrings } from "./colorTools";
 import { countryInfo } from "./countryData";
+type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
 
 const intersectSets = (a: Set<any>, b: Set<any>) =>
@@ -26,10 +19,14 @@ const subtractSets = (a: Set<any>, b: Set<any>, U: Set<any>) =>
 
 type HighlightRecord<TKey extends string> = Record<
   TKey,
-  HighlightSpecification<CountryCode>
+  HighlightSpecification<TKey>
 >;
 
-function IntersectPartitions<TKeyA extends string, TKeyB extends string>(
+function IntersectPartitions<
+  TCountryCode extends string,
+  TKeyA extends TCountryCode,
+  TKeyB extends TCountryCode
+>(
   partitionA: HighlightRecord<TKeyA>,
   partitionB: HighlightRecord<TKeyB>,
   nameA: Readonly<string> = "A",
@@ -39,14 +36,16 @@ function IntersectPartitions<TKeyA extends string, TKeyB extends string>(
 > {
   const allPartitionA = Object.values(partitionA)
     .map(
-      (val) => (val as HighlightSpecification<CountryCode>).highlightedCountries
+      (val) =>
+        (val as HighlightSpecification<TCountryCode>).highlightedCountries
     )
-    .flat() as CountryCode[];
+    .flat() as TCountryCode[];
   const allPartitionB = Object.values(partitionB)
     .map(
-      (val) => (val as HighlightSpecification<CountryCode>).highlightedCountries
+      (val) =>
+        (val as HighlightSpecification<TCountryCode>).highlightedCountries
     )
-    .flat() as CountryCode[];
+    .flat() as TCountryCode[];
 
   const partitionsFromIntersections = Object.keys(partitionA)
     .map((valA) => {
@@ -74,7 +73,7 @@ function IntersectPartitions<TKeyA extends string, TKeyB extends string>(
     `${nameA}:${valA}`,
     {
       highlightedCountries: getSubtraction(
-        partitionA[valA as TKeyA].highlightedCountries as CountryCode[],
+        partitionA[valA as TKeyA].highlightedCountries as TKeyA[],
         allPartitionB
       ),
       highlightColor: partitionA[valA as TKeyA].highlightColor,
@@ -84,7 +83,7 @@ function IntersectPartitions<TKeyA extends string, TKeyB extends string>(
     `${nameB}:${valB}`,
     {
       highlightedCountries: getSubtraction(
-        partitionB[valB as TKeyB].highlightedCountries as CountryCode[],
+        partitionB[valB as TKeyB].highlightedCountries as TKeyB[],
         allPartitionA
       ),
       highlightColor: partitionB[valB as TKeyB].highlightColor,
@@ -100,52 +99,14 @@ function IntersectPartitions<TKeyA extends string, TKeyB extends string>(
 function App() {
   // const ref = useRef<ImperativePanelGroupHandle>(null);
 
-  const resetLayout = () => {
-    const panelGroup = ref.current;
-    if (panelGroup) {
-      // Reset each Panel to 50% of the group's width
-      panelGroup.setLayout([50, 50]);
-    }
-  };
-
-  const mapVals = {
-    country: {
-      sourceKey: "item",
-      pCode: "P17",
-      valueKey: "?country",
-      joinChar: ".",
-      optional: false,
-    },
-    coords: {
-      sourceKey: "country",
-      pCode: "P625",
-      valueKey: "?coords",
-      joinChar: ".",
-      optional: false,
-    },
-    ideology: {
-      sourceKey: "item",
-      pCode: "P1142",
-      valueKey: "?ideology",
-      joinChar: ".",
-      optional: true,
-    },
-    start: {
-      sourceKey: "item",
-      pCode: "P571",
-      valueKey: "?start",
-      joinChar: ".",
-      optional: true,
-    },
-    end: {
-      sourceKey: "item",
-      pCode: "P576",
-      valueKey: "?end",
-      joinChar: ".",
-      optional: true,
-    },
-  };
-  type MembershipStatus = "current" | "applied" | "interest";
+  // const resetLayout = () => {
+  //   const panelGroup = ref.current;
+  //   if (panelGroup) {
+  //     // Reset each Panel to 50% of the group's width
+  //     panelGroup.setLayout([50, 50]);
+  //   }
+  // }
+  // type MembershipStatus = "current" | "applied" | "interest";
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
   const [paneSize, setPaneSize] = useState<number | null>(null);
   useEffect(() => {
@@ -153,15 +114,7 @@ function App() {
       setPaneSize(timelinePanelRef.current.getSize());
     }
   }, [timelinePanelRef.current?.getSize]);
-  const canvasSize: ObjV2 = { x: 1000, y: 300 };
-  const regionColorMap: RegionColorMap = {
-    Africa: "white",
-    Americas: "white",
-    Antarctica: "white",
-    Asia: "white",
-    Europe: "white",
-    Oceania: "white",
-  };
+  // const canvasSize: ObjV2 = { x: 1000, y: 300 };
   // const regionColorMap: RegionColorMap = {
   //   Africa: "green",
   //   Americas: "yellow",
@@ -171,18 +124,21 @@ function App() {
   //   Oceania: "red",
   // };
   const [year, setYear] = useState(2000);
-  const mapCountryData = (key: CountryInfoKey, value: CountryInfoKey) =>
-    Object.fromEntries(
-      countryInfo.map((country) => [country[key], country[value]])
-    );
-  const countryToRegion = mapCountryData(
-    "alpha-3",
-    "region"
-  ) as CountryRegionLookup<CountryCode>;
-  const countryToName = mapCountryData(
-    "alpha-3",
-    "name"
-  ) as CountryNameLookup<CountryCode>;
+  // const mapCountryData = (
+  //   key: CountryInfoKey<typeof countryInfo>,
+  //   value: CountryInfoKey<typeof countryInfo>
+  // ) =>
+  //   Object.fromEntries(
+  //     countryInfo.map((country) => [country[key], country[value]])
+  //   );
+  // const countryToRegion = mapCountryData(
+  //   "alpha-3",
+  //   "region"
+  // ) as CountryRegionLookup<CountryCode>;
+  // const countryToName = mapCountryData(
+  //   "alpha-3",
+  //   "name"
+  // ) as CountryNameLookup<CountryCode>;
   return (
     <>
       <div>
@@ -237,11 +193,11 @@ function App() {
     // </div>
   );
 }
-function getIntersectionsBetween(
+function getIntersectionsBetween<TCountryCode extends string>(
   keyA: keyof typeof partitionA,
   keyB: keyof typeof partitionB,
-  partitionA,
-  partitionB
+  partitionA: Record<string, { highlightedCountries: TCountryCode[] }>,
+  partitionB: Record<string, { highlightedCountries: TCountryCode[] }>
 ): CountryCode[] {
   return [
     ...intersectSets(
@@ -250,10 +206,10 @@ function getIntersectionsBetween(
     ),
   ];
 }
-function getSubtraction(
-  aList: CountryCode[],
-  subList: CountryCode[]
-): CountryCode[] {
+function getSubtraction<TCountryCode extends string>(
+  aList: TCountryCode[],
+  subList: TCountryCode[]
+): TCountryCode[] {
   return [
     ...subtractSets(new Set(aList), new Set(subList), new Set(allCountryCodes)),
   ];

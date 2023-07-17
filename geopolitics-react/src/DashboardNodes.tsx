@@ -1,19 +1,20 @@
-import { ObjV2, ScreenSpace } from "type-library";
+import type { ObjV2, ScreenSpace } from "type-library/src";
 import {
   NetworkDashboardNode,
   TimelineDashboardNode,
   WorldMapDashboardNode,
 } from "./ConcreteDashboardNodes";
-import {
+import type {
+  DashboardNodeConnection,
   DashboardNodes,
-  DataNodeType,
+  Flavor,
   IGenericNode,
   TNodeComponent,
 } from "./DashboardNodes.types";
 
 export function BuildInterface(
-  nodes: DashboardNodes[],
-  dataSources: Record<string, DataNodeType>
+  nodes: DashboardNodes[]
+  // dataSources: Record<string, DataNodeType>
   // TODO connect datasources
   // TODO encode datatype of a connection/input-output
   // TODO enforce tree structure?
@@ -24,11 +25,37 @@ export function BuildInterface(
         // <PluginAdapterNode>
         // </PluginAdapterNode>
         return (
+          // TODO need to associate input w node somehow - dunno why it's a union type
+          // Lookup type?
           <Component inputs={inputs} outputs={outputs} options={options} />
         );
       })}
     </>
   );
+}
+export function BuildNetwork<
+  TType extends string,
+  TInputs extends null | Record<string, { flavor: Flavor }> = Record<
+    string,
+    { flavor: Flavor }
+  >,
+  TOutputs extends null | Record<string, { flavor: Flavor }> = Record<
+    string,
+    { flavor: Flavor }
+  >,
+  TOptions extends null | Record<string, { flavor: Flavor }> = Record<
+    string,
+    { flavor: Flavor }
+  >
+>(
+  nodes: IGenericNode<TType, TInputs, TOutputs, TOptions>[],
+  edges: DashboardNodeConnection<any>[]
+) {
+  // TODO make sure is tree
+  // TODO validate shape
+  // TODO make sure joint allowed in socket
+  // for each edge - connect the observable to the socket (connected to transformation function via `combineLatest`)
+  // maybe start at the outputs & trace backwards from there?
 }
 
 // TODO different 'resize methods' per dashboardNode? ie 'stretch' 'center' etc

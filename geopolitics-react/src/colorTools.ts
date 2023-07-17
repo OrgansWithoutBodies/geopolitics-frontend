@@ -2,7 +2,8 @@
  * TODO - refactor this as a (jQuery?) plugin!
  **/
 
-import { HexString, HexTripleNumber } from "./types";
+import { HexString } from "type-library";
+import { HexTripleNumber } from "./types";
 
 // Converts a #ffffff hex string into an [r,g,b] array
 function h2r(hex: HexString): HexTripleNumber | null {

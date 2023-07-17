@@ -16,8 +16,10 @@
   "devDependencies": {
     "@types/figlet": "^1.5.6",
     "@types/node": "^20.3.1",
+    "@types/papaparse": "^5.3.7",
     "commander": "^11.0.0",
     "figlet": "^1.6.0",
+    "papaparse": "^5.4.1",
     "prettier": "2.8.8",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.3",

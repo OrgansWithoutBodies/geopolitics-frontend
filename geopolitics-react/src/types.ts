@@ -1,5 +1,5 @@
 import { HistoricalEvent } from "react-konva-components/src";
-import { ArrV3, HexString } from "type-library";
+import type { ArrV3, HexString } from "type-library";
 
 export type RangeBrandTag<TMin extends number, TMax extends number> = {
   __min: TMin;
@@ -47,9 +47,4 @@ export type RenderableEvent = HistoricalEvent & {
     position: TimelineSpace;
     color: HexString;
   };
-};
-export const periodIsSegmentGuard = (
-  event: PeriodOrSingleton<TimeSpace>
-): event is TimePeriod => {
-  return isNaN(event as any);
 };

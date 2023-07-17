@@ -44,11 +44,18 @@ international relations (Q166542)
 -- WAR
 conquest (Q1361229) 
 battle (Q178561) 
+ total produced (P1092) 
+  operator (P137) 
 conflict (P607)
 soldier (Q4991371)
 resistance fighter (Q1397808) 
 partisan (Q212948)
 military commander (Q11545923)
+ weapon (Q728) 
+  military equipment (Q18643213) 
+   armament (P520) 
+    Wikidata property related to weapons and military equipment (Q51089849) 
+     Wikidata property for items about military (Q22964288) 
 military (Q8473)
 military base (Q245016)
 military facility (Q18691599)
@@ -305,10 +312,18 @@ strike (Q49776)
 industrial action (Q628191) 
 special economic zone (Q494978) 
 strategic alliance (Q1328230) 
+   Human Development Index (P1081) 
+    language used (P2936) 
+     has quality (P1552) 
 
 -- META 
 Wikidata property with datatype 'time' (Q18636219)
 type of Wikidata property (Q107649491)
+ is a list of (P360) 
+  speed (P2052) 
 
 Crime and law • Culture and entertainment • Disasters and accidents • Economy and business • Education • Environment
 Health • Obituaries • Politics and conflicts • Science and technology • Sports • Wackynews • Weather
+
+
+SIPRI https://www.sipri.org/databases

@@ -6,30 +6,23 @@ import {
   rawNetworkToAdjMat,
 } from "react-konva-components/src";
 import { Observable, combineLatest, map } from "rxjs";
-import {
+import type {
   AdjacencyMatrix,
   HexString,
   RawNetwork,
   RenderableNetworkEdge,
   RenderableNetworkNode,
 } from "type-library";
-import {
+import { periodIsSegmentGuard } from "../Timeline";
+import type {
   LineSegment,
   PeriodOrSingleton,
   RenderableEvent,
   SpaceConvertingFunction,
   TimeSpace,
   TimelineSpace,
-  periodIsSegmentGuard,
 } from "../types";
 import { DataState, DataStore, dataStore } from "./data.store";
-
-// const adjMatToRawNetwork = (adjMat: AdjacencyMatrix): RawNetwork => {
-//   const numNodes = adjMat.length;
-//   const nodes = new Array(numNodes).keys();
-//   const edges = [];
-//   return { nodes, edges };
-// };
 
 const getRandomColor = (): HexString => {
   // return "#FFFFFF";

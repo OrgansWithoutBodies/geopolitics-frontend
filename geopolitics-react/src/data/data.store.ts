@@ -1,8 +1,9 @@
-import { Store, StoreConfig } from "@datorama/akita";
-import { NetworkEdge, NetworkNode } from "react-konva-components/src";
+import { Store } from "@datorama/akita";
+import { HistoricalEvent, NetworkNode } from "react-konva-components/src";
+import { NetworkEdge } from "type-library";
 import { WDType } from "../../dataPrep/out/internationalOrganizations.data";
 import { QCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
-import type { EventID, HistoricalEvent, NodeID, TimeSpace } from "../types";
+import type { EventID, NodeID, TimeSpace } from "../types";
 type NodeLookup = Record<NodeID, NetworkNode>;
 const nodesLookup: NodeLookup = {
   [0 as NodeID]: {
@@ -124,8 +125,8 @@ export function createInitialState(): DataState {
     finalDateFilter: null,
   };
 }
-
-@StoreConfig({ name: "data" })
+//! TODO
+// @StoreConfig({ name: "data" })
 export class DataStore extends Store<DataState> {
   constructor() {
     super(createInitialState());

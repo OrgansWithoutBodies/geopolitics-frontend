@@ -1,4 +1,4 @@
-import { KonvaSpace, ObjV2 } from "type-library";
+import type { KonvaSpace, ObjV2 } from "type-library";
 import { NodeID, TimeSpace } from "../types";
 import { DataStore, dataStore } from "./data.store";
 
