@@ -2,7 +2,7 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import "./App.css";
 
 import { useEffect, useRef, useState } from "react";
-import { HighlightSpecification } from "react-konva-components/src";
+import { HighlightSpecification } from "react-konva-components";
 import { interpolateHexStrings } from "./colorTools";
 import { countryInfo } from "./countryData";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];

@@ -4,13 +4,12 @@ import {
   HistoricalEvent,
   forceDirectedGraph,
   rawNetworkToAdjMat,
-} from "react-konva-components/src";
+} from "react-konva-components";
 import { Observable, combineLatest, map } from "rxjs";
 import type {
   AdjacencyMatrix,
   HexString,
   RawNetwork,
-  RenderableNetworkEdge,
   RenderableNetworkNode,
 } from "type-library";
 import { periodIsSegmentGuard } from "../Timeline";
@@ -139,23 +138,23 @@ export class DataQuery extends Query<DataState> {
       })
     );
 
-  public renderableEdges: Observable<RenderableNetworkEdge[]> = combineLatest([
-    this.renderableNetworkNodes,
-    this.networkEdges,
-    this.adjMat,
-  ]).pipe(
-    map(([nodes, edges]) => {
-      return edges.map((edge) => {
-        return {
-          ...edge,
-          renderedProps: {
-            originPosition: nodes[edge.origin].renderedProps.position,
-            targetPosition: nodes[edge.target].renderedProps.position,
-          },
-        };
-      });
-    })
-  );
+  // public renderableEdges: Observable<RenderableNetworkEdge[]> = combineLatest([
+  //   this.renderableNetworkNodes,
+  //   this.networkEdges,
+  //   this.adjMat,
+  // ]).pipe(
+  //   map(([nodes, edges]) => {
+  //     return edges.map((edge) => {
+  //       return {
+  //         ...edge,
+  //         renderedProps: {
+  //           originPosition: nodes[edge.origin].renderedProps.position,
+  //           targetPosition: nodes[edge.target].renderedProps.position,
+  //         },
+  //       };
+  //     });
+  //   })
+  // );
 
   public initialDateFilter = this.select("initialDateFilter");
   public finalDateFilter = this.select("finalDateFilter");

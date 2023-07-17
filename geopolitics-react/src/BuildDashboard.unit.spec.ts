@@ -1,13 +1,13 @@
 import { of } from "rxjs";
 import { BuildNetwork } from "./DashboardNodes";
-import { IGenericNode } from "./DashboardNodes.types";
+import { IGenericDashboardNode } from "./DashboardNodes.types";
 
 describe("Build Dashboard", () => {
   it("dashboard nodes work as expected", () => {
     // TODO 'readable node' that sits along a
     // const PeeperNode = () => {};
     // const OutputToStateNode = () => {};
-    const NotNode: IGenericNode<
+    const NotNode: IGenericDashboardNode<
       "Not",
       { in: { flavor: "Boolean" } },
       { out: { flavor: "Boolean" } }
@@ -16,7 +16,7 @@ describe("Build Dashboard", () => {
       inputs: { in: { flavor: "Boolean" } },
       outputs: { out: { flavor: "Boolean" } },
       options: {},
-      Component: {} as IGenericNode<
+      Component: {} as IGenericDashboardNode<
         "Not",
         { in: { flavor: "Boolean" } },
         { out: { flavor: "Boolean" } }

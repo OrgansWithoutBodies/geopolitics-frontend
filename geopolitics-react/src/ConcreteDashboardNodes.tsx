@@ -1,6 +1,8 @@
 import {
   EventID,
   Network,
+  NetworkNodeTemplate,
+  NodesComponentProps,
   Timeline,
   WorldMap,
 } from "react-konva-components/src";
@@ -12,52 +14,96 @@ export function NetworkDashboardNode({
     entities: { nodes, edges },
   },
   outputs: { selectedEntities },
-  stageSize,
-}: AdaptPlugin<INetworkNode<string>>): JSX.Element {
-  return <Network nodes={nodes} stageSize={stageSize} edges={edges} />;
+  dashboardNodeProps: { stageSize },
+}: AdaptPlugin<INetworkNode>): JSX.Element {
+  console.log(selectedEntities);
+  return (
+    <Network
+      nodes={nodes}
+      stageSize={stageSize}
+      edges={edges}
+      NodeTemplate={({
+        node,
+      }: {
+        node: NodesComponentProps["nodes"][number];
+      }) => (
+        <NetworkNodeTemplate
+          onMouseLeave={function (): void {
+            throw new Error("Function not implemented.");
+          }}
+          onSelectNode={function (): void {
+            throw new Error("Function not implemented.");
+          }}
+          onMouseOver={function (): void {
+            throw new Error("Function not implemented.");
+          }}
+          onNodeMove={function (): void {
+            throw new Error("Function not implemented.");
+          }}
+          highlightedNode={null}
+          node={node}
+        />
+      )}
+    />
+  );
 }
+
 export function WorldMapDashboardNode({
-  inputs: { entities, fills },
+  inputs: {
+    entities: { map },
+    fills: { highlights },
+  },
   outputs: { selectedEntities },
-  stageSize,
-}: AdaptPlugin<IMapNode<string>>): JSX.Element {
+  dashboardNodeProps: { stageSize },
+}: AdaptPlugin<IMapNode<number>>): JSX.Element {
+  // TODO
+  console.log(selectedEntities);
   return (
     <WorldMap
       // TODO select/onSelect
       container={{
         sizePx: stageSize,
-        center: [],
+        center: [0, 0],
       }}
       contents={{
-        countries: entities,
-        countryToRegion: undefined,
-        countryToName: undefined,
-        countryLines: undefined,
-        countryHeartMap: undefined,
-        highlights: fills,
+        // TODO
+        countries: map as any,
+        countryToRegion: {},
+        countryToName: {},
+        // countryLines: undefined,
+        // countryHeartMap: undefined,
+        highlights,
       }}
     />
   );
 }
 export function TimelineDashboardNode({
-  inputs: { entities },
-  outputs: { selectedEntities },
-  options: { timelineStart, timelineEnd },
-  stageSize,
-}: AdaptPlugin<ITimelineNode<number>>): JSX.Element {
+  inputs: {
+    entities: { events },
+    timelineEnd: { timelineEnd },
+    timelineStart: { timelineStart },
+  },
+  outputs: {
+    selectedEntities: { selecteds },
+  },
+  options,
+  dashboardNodeProps: { stageSize },
+}: //  dash {stageSize},
+AdaptPlugin<ITimelineNode<EventID>>): JSX.Element {
   return (
     <Timeline
       stageSize={stageSize}
-      onHoveredEvent={function (id: EventID): void {
+      onHoveredEvent={function (): void {
+        throw new Error("Function not implemented.", options);
+      }}
+      onSelectEvent={function (): void {
         throw new Error("Function not implemented.");
       }}
-      onSelectEvent={function (id: EventID): void {
-        throw new Error("Function not implemented.");
-      }}
-      events={entities}
+      // TODO
+      events={events as any}
       latestEventEnd={timelineEnd}
       earliestEventStart={timelineStart}
-      selectedEventId={null}
+      selectedEventIds={selecteds}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { HistoricalEvent } from "react-konva-components/src";
+import { HistoricalEvent } from "react-konva-components";
 import type { ArrV3, HexString } from "type-library";
 
 export type RangeBrandTag<TMin extends number, TMax extends number> = {
@@ -14,7 +14,7 @@ export type HexChannelNumber<TChannel extends Channel = Channel> =
 
 export type HexTripleNumber = ArrV3<HexChannelNumber>;
 // TODO types from openapi
-type BrandedType<T = any, Brand extends string = string> = T & {
+type BrandedType<T, Brand extends string = string> = T & {
   __brand: Brand;
 };
 
@@ -29,7 +29,7 @@ export type BrandedString<Brand extends string> = BrandedType<string, Brand>;
 export type EventID = BrandedNumber<"Event">;
 export type NodeID = BrandedNumber<"Node">;
 export type AgentID = BrandedNumber<"Agent">;
-type ConversionTag<TFrom extends number, TTo extends number> = {
+export type ConversionTag<TFrom extends number, TTo extends number> = {
   __from: TFrom;
   __to: TTo;
 };

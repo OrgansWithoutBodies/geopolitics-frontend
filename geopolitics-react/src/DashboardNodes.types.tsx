@@ -1,19 +1,24 @@
 import {
   HighlightSpecification,
   HistoricalEvent,
-  TWorldMapEntity,
-} from "react-konva-components/src";
+  WorldMapType,
+} from "react-konva-components";
 import { Observable } from "rxjs";
-import { NodeID } from "type-library";
+import { HexString, ObjV2, ScreenSpace } from "type-library";
 import type {
   GenericArrow,
-  HexString,
-  KonvaSpace,
+  NodeID,
   RawNetwork,
+  RenderableNetworkEdge,
+  RenderableNetworkNode,
   TimeSpace,
   Tree,
 } from "type-library/src";
-import { NetworkDashboardNode } from "./ConcreteDashboardNodes";
+import {
+  NetworkDashboardNode,
+  WorldMapDashboardNode,
+} from "./ConcreteDashboardNodes";
+import { AdaptPlugin } from "./DashboardNodes";
 import type { PeriodOrSingleton } from "./types";
 
 type TransformNodeType = "";
@@ -27,13 +32,15 @@ type FlavorShape = {
     shape: RawNetwork<{ id: NodeID; class: "A" } | { id: NodeID; class: "B" }>;
   };
   TimeFilter: { shape: { min: TimeSpace; max: TimeSpace } };
-  NodeColorList: { shape: {} };
-  MapGeometry: { shape: {} };
-  IdList: { shape: {} };
-  IdListSpec: { shape: {} };
-  Array: { shape: {} };
-  Color: { shape: {} };
-  OrderedEvents: { shape: {} };
+  NodeColorList: { shape: HexString[] };
+  layoutMethod: { shape: "forceDirectedGraph" | "circular" | "tree" };
+  Color: { shape: HexString };
+  MapGeometry: { shape: WorldMapType<any, any>[] };
+  IdList: { shape: number[] };
+  OrderedEvents: {
+    shape: HistoricalEvent<PeriodOrSingleton<TimeSpace>, any>[];
+  };
+  Time: TimeSpace;
 };
 // TODO maybe 'string list'/'number list'?
 export type Flavor = keyof FlavorShape;
@@ -65,15 +72,15 @@ type TransformWidget<
 > = (inputs: TIn, outputs: TOut) => TOut;
 
 // TODO optional sockets
-type FilterTime = TransformWidget<
-  { filter: "TimeFilter"; source: "OrderedEvents" },
-  { out: "OrderedEvents" }
->;
-type TransformTreeToNetwork = TransformWidget<
+// type FilterTime = TransformWidget<
+//   { filter: "TimeFilter"; source: "OrderedEvents" },
+//   { out: "OrderedEvents" }
+// >;
+export type TransformTreeToNetwork = TransformWidget<
   { in: "Tree" },
   { out: "Network" }
 >;
-type CoallesceMulimodalNetwork = TransformWidget<
+export type CoallesceMulimodalNetwork = TransformWidget<
   { in: "MultiModalNetwork" },
   { out: "Network" }
 >;
@@ -89,6 +96,7 @@ type TNodeComponentArgs<
   inputs: TInputs;
   outputs: TOutputs;
   options: TOptions;
+  dashboardNodeProps: { stageSize: ObjV2<ScreenSpace> };
 };
 export type DataNodeType<
   TOutputs extends Record<string, any>,
@@ -98,7 +106,14 @@ export type DataNodeType<
     TOutputs,
     null
   >
-> = IGenericNode<TDataString, null, TOutputs, null, TComponent, ["Data"]>;
+> = IGenericDashboardNode<
+  TDataString,
+  null,
+  TOutputs,
+  null,
+  TComponent,
+  ["Data"]
+>;
 export type TNodeComponent<
   TInputs extends null | Record<string, any>,
   TOutputs extends null | Record<string, any>,
@@ -113,7 +128,7 @@ export type TNodeComponent<
 // TODO tooltip node? or tooltip per-node??
 // TODO plugin architecture
 // TODO 3d node? plugin
-export interface IGenericNode<
+export interface IGenericDashboardNode<
   TType extends string = AllowedNodes,
   TInputs extends null | Record<string, { flavor: Flavor }> = Record<
     string,
@@ -159,60 +174,80 @@ export interface IGenericNode<
   ) => Observable<TOutputs>[];
 }
 
-export type IMapNode<TEntityKey extends number> = IGenericNode<
+export type IMapNode<TEntityKey extends number> = IGenericDashboardNode<
   "Map",
   {
-    entities: { flavor: "MapGeometry" } & TWorldMapEntity<TEntityKey>[];
-    fills: { flavor: "NodeColorList" } & HighlightSpecification<TEntityKey>[];
+    entities: {
+      flavor: "MapGeometry";
+      map: WorldMapType<TEntityKey, any>;
+    };
+    fills: {
+      flavor: "NodeColorList";
+      highlights: HighlightSpecification<TEntityKey>[];
+    };
   },
   // TODO subflavor? flavor variety? (for concrete generics)
-  { selectedEntities: { flavor: "IdList" } & TEntityKey[] }
+  { selectedEntities: { flavor: "IdList"; selected: TEntityKey[] } },
+  null,
+  typeof WorldMapDashboardNode
 >;
-export type ITimelineNode<TEntityKey extends number> = IGenericNode<
+export type ITimelineNode<TEntityKey extends number> = IGenericDashboardNode<
   "Timeline",
   {
-    entities: { flavor: "OrderedEvents" } & HistoricalEvent<
-      PeriodOrSingleton<TimeSpace>,
-      TEntityKey
-    >[];
-    fills: { flavor: "NodeColorList" } & HighlightSpecification<TEntityKey>[];
+    entities: {
+      flavor: "OrderedEvents";
+      events: HistoricalEvent<PeriodOrSingleton<TimeSpace>, TEntityKey>[];
+    };
+    fills: {
+      flavor: "NodeColorList";
+      highlights: HighlightSpecification<TEntityKey>[];
+    };
+    timelineEnd: { flavor: "Time"; timelineEnd: TimeSpace };
+    timelineStart: { flavor: "Time"; timelineStart: TimeSpace };
   },
-  { selectedEntities: { flavor: "IdList" } & TEntityKey[] }
+  { selectedEntities: { flavor: "IdList"; selecteds: TEntityKey[] } }
 >;
 // TODO this is effectively a lookup now so adding a manual | is sorta redundant
-type AllowedNodes =
-  | "Map"
-  | "Network"
-  | "Timeline"
-  | "Share"
-  | "Text"
-  | "TreeMap"
-  | "Info"
-  | "Settings";
-export type INetworkNode<TEntityKey extends number> = IGenericNode<
+type AllowedNodeTypeLookup = {
+  Map: AdaptPlugin<IMapNode<number>>;
+  Network: any;
+  Timeline: any;
+  Share: any;
+  Text: any;
+  TreeMap: any;
+  Info: any;
+  Settings: any;
+};
+type AllowedNodes = keyof AllowedNodeTypeLookup;
+
+export type INetworkNode = IGenericDashboardNode<
   "Network",
   {
-    entities: { flavor: "Network" } & {
-      nodes: { id: TEntityKey; color: HexString; radius: KonvaSpace }[];
-      edges: (GenericArrow<TEntityKey> & {
-        lineThickness: KonvaSpace;
-        lineColor: HexString;
-      })[];
+    entities: {
+      flavor: "Network";
+      nodes: RenderableNetworkNode[];
+      edges: RenderableNetworkEdge[];
+      // nodes: { id: TEntityKey; color: HexString; radius: KonvaSpace }[];
+      // edges: (GenericArrow<TEntityKey> & {
+      //   lineThickness: KonvaSpace;
+      //   lineColor: HexString;
+      // })[];
     };
-    initialLayoutMethod: { flavor: "Array" } & (
-      | "forceDirectedGraph"
-      | "circular"
-      | "tree"
-    );
-    fills: { flavor: "NodeColorList" } & HighlightSpecification<TEntityKey>[];
+    initialLayoutMethod: {
+      flavor: "layoutMethod";
+      method: "forceDirectedGraph" | "circular" | "tree";
+    };
+    fills: {
+      flavor: "NodeColorList";
+      highlights: HighlightSpecification<NodeID>[];
+    };
   },
-  { selectedEntities: TEntityKey[] & { flavor: "IdList" } },
+  { selectedEntities: { flavor: "IdList"; nodes: NodeID[] } },
+  null,
   typeof NetworkDashboardNode
 >;
-export type DashboardNodes<
-  TMapEntityKey extends number = number,
-  TNetworkEntityKey extends number = number
-> =
+export type DashboardNodes<TMapEntityKey extends number = number> =
   | IMapNode<TMapEntityKey>
-  | INetworkNode<TNetworkEntityKey>
+  // | INetworkNode<TNetworkEntityKey>
+  | INetworkNode
   | ITimelineNode<number>;
