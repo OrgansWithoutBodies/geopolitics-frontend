@@ -1,8 +1,5 @@
-import { useState } from "react";
-import { HistoricalEvent } from "./types";
-
 export function AddNewEvent() {
-  const [newEvent, setNewEvent] = useState<HistoricalEvent | null>(null);
+  // const [newEvent, setNewEvent] = useState<HistoricalEvent | null>(null);
   return (
     <>
       <div>

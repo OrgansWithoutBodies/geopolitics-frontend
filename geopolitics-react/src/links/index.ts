@@ -16,7 +16,7 @@ type Evidence = {
   link: URLString;
   quotes: Quotation[];
 };
-type Claim = {
+export type Claim = {
   topic: Topic;
   claim: string;
   source: Evidence[];

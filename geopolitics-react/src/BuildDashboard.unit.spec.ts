@@ -1,4 +1,4 @@
-import { of } from "rxjs";
+import { map, of } from "rxjs";
 import { BuildNetwork } from "./DashboardNodes";
 import { IGenericDashboardNode } from "./DashboardNodes.types";
 
@@ -7,28 +7,39 @@ describe("Build Dashboard", () => {
     // TODO 'readable node' that sits along a
     // const PeeperNode = () => {};
     // const OutputToStateNode = () => {};
-    const NotNode: IGenericDashboardNode<
+
+    function NotNode<TId extends string>(
+      id: TId
+    ): IGenericDashboardNode<
+      TId,
       "Not",
       { in: { flavor: "Boolean" } },
-      { out: { flavor: "Boolean" } }
-    > = {
-      type: "Not",
-      inputs: { in: { flavor: "Boolean" } },
-      outputs: { out: { flavor: "Boolean" } },
-      options: {},
-      Component: {} as IGenericDashboardNode<
-        "Not",
-        { in: { flavor: "Boolean" } },
-        { out: { flavor: "Boolean" } }
-      >["Component"],
-    };
+      { out: { flavor: "Boolean" } },
+      null,
+      null,
+      null,
+      true
+    > {
+      return {
+        id,
+        type: "Not",
+        inputs: { in: { flavor: "Boolean" } },
+        outputs: { out: { flavor: "Boolean" } },
+        functionObservable: (inputs) => {
+          return inputs.pipe(
+            map((val) => ({ out: { flavor: "Boolean", val: !val } }))
+          );
+        },
+        // funcob
+      };
+    }
     // INITIAL BOOLEAN > NOT > NOT > INITIAL BOOLEAN OUT
     const testInterface = BuildNetwork(
-      [NotNode, NotNode],
+      [NotNode("NOT-1"), NotNode("NOT-2")],
       [
         {
-          origin: { flavor: "testA", jointDataObservable: of() },
-          target: { flavor: "testB" },
+          origin: { id: "NOT-1", flavor: "Boolean", jointDataObservable: of() },
+          target: { id: "NOT-2", flavor: "Boolean" },
         },
       ]
     );

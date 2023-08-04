@@ -1,60 +1,78 @@
 import type { ObjV2, ScreenSpace } from "type-library/src";
 import type {
   DashboardNodeConnection,
-  DashboardNodes,
   Flavor,
   IGenericDashboardNode,
   TNodeComponent,
 } from "./DashboardNodes.types";
 
-export function BuildInterface(
-  nodes: DashboardNodes[]
-  // dataSources: Record<string, DataNodeType>
-  // TODO connect datasources
-  // TODO encode datatype of a connection/input-output
-  // TODO enforce tree structure?
-): JSX.Element {
-  return (
-    <>
-      {nodes.map(({ Component, inputs, outputs, options }) => {
-        // <PluginAdapterNode>
-        // </PluginAdapterNode>
-        return (
-          // TODO need to associate input w node somehow - dunno why it's a union type
-          // Lookup type?
-          <Component
-            // TODO any
-            inputs={inputs as any}
-            outputs={outputs as any}
-            options={options as any}
-            dashboardNodeProps={{
-              stageSize: { x: 0 as ScreenSpace, y: 0 as ScreenSpace },
-            }}
-          />
-        );
-      })}
-    </>
-  );
-}
+// export function BuildInterface(
+//   nodes: DashboardNodes[]
+//   // dataSources: Record<string, DataNodeType>
+//   // TODO connect datasources
+//   // TODO encode datatype of a connection/input-output
+//   // TODO enforce tree structure?
+// ): JSX.Element {
+//   return (
+//     <>
+//       {nodes.map(({ Component, inputs, outputs, options }) => {
+//         // <PluginAdapterNode>
+//         // </PluginAdapterNode>
+//         return (
+//           // TODO need to associate input w node somehow - dunno why it's a union type
+//           // Lookup type?
+//           <Component
+//             // TODO any
+//             inputs={inputs as any}
+//             outputs={outputs as any}
+//             options={options as any}
+//             dashboardNodeProps={{
+//               stageSize: { x: 0 as ScreenSpace, y: 0 as ScreenSpace },
+//             }}
+//           />
+//         );
+//       })}
+//     </>
+//   );
+// }
+// todo enforce each dashboard node must either return an observable or a jsx element
 export function BuildNetwork<
+  TId extends string,
   TType extends string,
-  TInputs extends null | Record<string, { flavor: Flavor }> = Record<
-    string,
-    { flavor: Flavor }
-  >,
-  TOutputs extends null | Record<string, { flavor: Flavor }> = Record<
-    string,
-    { flavor: Flavor }
-  >,
-  TOptions extends null | Record<string, { flavor: Flavor }> = Record<
-    string,
-    { flavor: Flavor }
-  >
+  TInputs extends null | Record<string, { flavor: Flavor }> = null,
+  TOutputs extends null | Record<string, { flavor: Flavor }> = null,
+  TOptions extends null | Record<string, { flavor: Flavor }> = null
 >(
-  nodes: IGenericDashboardNode<TType, TInputs, TOutputs, TOptions>[],
+  nodes: IGenericDashboardNode<
+    TId,
+    TType,
+    TInputs,
+    TOutputs,
+    TOptions,
+    null,
+    null,
+    true
+  >[],
   edges: DashboardNodeConnection<any>[]
 ) {
   console.log(nodes, edges);
+  // need to start from the data sources?
+  /**
+   * start at one outermost data node (shouldnt matter which)
+   * check if it has an edge. If so follow it. We are now at a transformation node
+   * if a transformation node needs another input then find an edge where this slot is the target. If none exists, throw error.
+   * once we have this slot, find the outermost node of this tree
+   */
+  edges.forEach((edge) => {
+    const originNode = nodes.find((val) => val.id === edge.origin.id);
+    const targetNode = nodes.find((val) => val.id === edge.target.id);
+    if (!originNode || !targetNode) {
+      return {};
+    }
+    // TODO formalize 'terminus node' - for dashboard it'd be the grid arranger node?
+    // think it might be better for the origin to have a lazy 'getObservableValue' method - maybe nicest to just do one pass of 'connect things up' then start at the terminus node & just call the 'get' for that & let it cascade
+    // targetNode.functionObservable(originNode.functionObservable(of({})));
+  });
   // TODO make sure is tree
   // TODO validate shape
   // TODO make sure joint allowed in socket
@@ -66,9 +84,15 @@ export function BuildNetwork<
 export type AdaptPlugin<
   // TODO no any
   TNode extends IGenericDashboardNode<any, any, any, any, any, any>,
-  TInputs extends Record<string, any> = TNode["inputs"],
-  TOutputs extends Record<string, any> = TNode["outputs"],
-  TOptions extends Record<string, any> = TNode["options"]
+  TInputs extends Record<string, any> = TNode extends { inputs: any }
+    ? TNode["inputs"]
+    : null,
+  TOutputs extends Record<string, any> = TNode extends { outputs: any }
+    ? TNode["outputs"]
+    : null,
+  TOptions extends Record<string, any> = TNode extends { options: any }
+    ? TNode["options"]
+    : null
 > = PluginAdapterComponentArgs<TInputs, TOutputs, TOptions>;
 type PluginAdapterComponentArgs<
   TInputs extends Record<string, any>,

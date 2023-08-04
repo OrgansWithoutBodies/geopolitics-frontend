@@ -14,7 +14,7 @@ import {
   HistoricalEvent,
   PeriodOrSingleton,
   TimePeriod,
-} from "react-konva-components";
+} from "react-konva-components/src";
 import type { ObjV2 } from "type-library";
 import {
   TimelineContext,
@@ -278,8 +278,8 @@ export function Timeline({
             <TimelineEvents
               events={events}
               onMouseOver={function (
-                id: EventID,
-                event: KonvaEventObject<MouseEvent>
+                id: EventID
+                // event: KonvaEventObject<MouseEvent>
               ): void {
                 const hitEvent = events.find(
                   ({ id: sourceId }) => sourceId === id
@@ -318,14 +318,14 @@ export function FilterEvents(): JSX.Element {
       finalDateFilter,
       unfilteredEarliestEventStart: earliestEventStart,
       unfilteredLatestEventEnd: latestEventEnd,
-      numberEventsAfterFilter,
+      // numberEventsAfterFilter,
     },
   ] = useData([
     "initialDateFilter",
     "finalDateFilter",
     "unfilteredEarliestEventStart",
     "unfilteredLatestEventEnd",
-    "numberEventsAfterFilter",
+    // "numberEventsAfterFilter",
   ]);
   return (
     <>

@@ -4,7 +4,7 @@ import {
   HistoricalEvent,
   forceDirectedGraph,
   rawNetworkToAdjMat,
-} from "react-konva-components";
+} from "react-konva-components/src";
 import { Observable, combineLatest, map } from "rxjs";
 import type {
   AdjacencyMatrix,
@@ -63,6 +63,7 @@ export class DataQuery extends Query<DataState> {
     events: HistoricalEvent[],
     sortKey: keyof LineSegment
   ) => {
+    console.log("TODO", sortKey);
     return [...events].sort((eventA, eventB) => {
       return timeObjAAfterTimeObjB(eventA.eventTime, eventB.eventTime, "start")
         ? 1

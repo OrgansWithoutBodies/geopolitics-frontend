@@ -1,9 +1,6 @@
 import { ImperativePanelHandle } from "react-resizable-panels";
-import "./App.css";
 
 import { useEffect, useRef, useState } from "react";
-import { HighlightSpecification } from "react-konva-components";
-import { interpolateHexStrings } from "./colorTools";
 import { countryInfo } from "./countryData";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
@@ -17,85 +14,85 @@ const subtractSets = (a: Set<any>, b: Set<any>, U: Set<any>) =>
   intersectSets(a, notSet(b, U));
 ``;
 
-type HighlightRecord<TKey extends string> = Record<
-  TKey,
-  HighlightSpecification<TKey>
->;
+// type HighlightRecord<TKey extends number> = Record<
+//   TKey,
+//   HighlightSpecification<TKey>
+// >;
 
-function IntersectPartitions<
-  TCountryCode extends string,
-  TKeyA extends TCountryCode,
-  TKeyB extends TCountryCode
->(
-  partitionA: HighlightRecord<TKeyA>,
-  partitionB: HighlightRecord<TKeyB>,
-  nameA: Readonly<string> = "A",
-  nameB: Readonly<string> = "B"
-): HighlightRecord<
-  `${TKeyA}-${TKeyB}` | `${typeof nameA}:${TKeyA}` | `${typeof nameB}:${TKeyB}`
-> {
-  const allPartitionA = Object.values(partitionA)
-    .map(
-      (val) =>
-        (val as HighlightSpecification<TCountryCode>).highlightedCountries
-    )
-    .flat() as TCountryCode[];
-  const allPartitionB = Object.values(partitionB)
-    .map(
-      (val) =>
-        (val as HighlightSpecification<TCountryCode>).highlightedCountries
-    )
-    .flat() as TCountryCode[];
+// export function IntersectPartitions<
+//   TCountryCode extends number,
+//   TKeyA extends TCountryCode,
+//   TKeyB extends TCountryCode
+// >(
+//   partitionA: HighlightRecord<TKeyA>,
+//   partitionB: HighlightRecord<TKeyB>,
+//   nameA: Readonly<number> = 0,
+//   nameB: Readonly<number> = 1
+// ): HighlightRecord<
+//   `${TKeyA}-${TKeyB}` | `${typeof nameA}:${TKeyA}` | `${typeof nameB}:${TKeyB}`
+// > {
+//   const allPartitionA = Object.values(partitionA)
+//     .map(
+//       (val) =>
+//         (val as HighlightSpecification<TCountryCode>).highlightedCountries
+//     )
+//     .flat() as TCountryCode[];
+//   const allPartitionB = Object.values(partitionB)
+//     .map(
+//       (val) =>
+//         (val as HighlightSpecification<TCountryCode>).highlightedCountries
+//     )
+//     .flat() as TCountryCode[];
 
-  const partitionsFromIntersections = Object.keys(partitionA)
-    .map((valA) => {
-      return Object.keys(partitionB).map((valB) => {
-        return [
-          `${valA}-${valB}`,
-          {
-            highlightedCountries: getIntersectionsBetween(
-              valA,
-              valB,
-              partitionA,
-              partitionB
-            ),
-            highlightColor: interpolateHexStrings(
-              partitionA[valA as TKeyA].highlightColor,
-              partitionB[valB as TKeyB].highlightColor
-            ),
-          },
-        ];
-      });
-    })
-    .flat();
+//   const partitionsFromIntersections = Object.keys(partitionA)
+//     .map((valA) => {
+//       return Object.keys(partitionB).map((valB) => {
+//         return [
+//           `${valA}-${valB}`,
+//           {
+//             highlightedCountries: getIntersectionsBetween(
+//               valA,
+//               valB,
+//               partitionA,
+//               partitionB
+//             ),
+//             highlightColor: interpolateHexStrings(
+//               partitionA[valA as TKeyA].highlightColor,
+//               partitionB[valB as TKeyB].highlightColor
+//             ),
+//           },
+//         ];
+//       });
+//     })
+//     .flat();
 
-  const entriesInAButNotB = Object.keys(partitionA).map((valA) => [
-    `${nameA}:${valA}`,
-    {
-      highlightedCountries: getSubtraction(
-        partitionA[valA as TKeyA].highlightedCountries as TKeyA[],
-        allPartitionB
-      ),
-      highlightColor: partitionA[valA as TKeyA].highlightColor,
-    },
-  ]);
-  const entriesInBButNotA = Object.keys(partitionB).map((valB) => [
-    `${nameB}:${valB}`,
-    {
-      highlightedCountries: getSubtraction(
-        partitionB[valB as TKeyB].highlightedCountries as TKeyB[],
-        allPartitionA
-      ),
-      highlightColor: partitionB[valB as TKeyB].highlightColor,
-    },
-  ]);
+//   const entriesInAButNotB = Object.keys(partitionA).map((valA) => [
+//     `${nameA}:${valA}`,
+//     {
+//       highlightedCountries: getSubtraction(
+//         partitionA[valA as TKeyA].highlightedCountries as TKeyA[],
+//         allPartitionB
+//       ),
+//       highlightColor: partitionA[valA as TKeyA].highlightColor,
+//     },
+//   ]);
+//   const entriesInBButNotA = Object.keys(partitionB).map((valB) => [
+//     `${nameB}:${valB}`,
+//     {
+//       highlightedCountries: getSubtraction(
+//         partitionB[valB as TKeyB].highlightedCountries as TKeyB[],
+//         allPartitionA
+//       ),
+//       highlightColor: partitionB[valB as TKeyB].highlightColor,
+//     },
+//   ]);
 
-  return Object.fromEntries([
-    ...partitionsFromIntersections,
-    ...entriesInAButNotB,
-    ...entriesInBButNotA,
-  ]);
-}
+//   return Object.fromEntries([
+//     ...partitionsFromIntersections,
+//     ...entriesInAButNotB,
+//     ...entriesInBButNotA,
+//   ]);
+// }
 function App() {
   // const ref = useRef<ImperativePanelGroupHandle>(null);
 
@@ -108,10 +105,10 @@ function App() {
   // }
   // type MembershipStatus = "current" | "applied" | "interest";
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
-  const [paneSize, setPaneSize] = useState<number | null>(null);
+  // const [paneSize, setPaneSize] = useState<number | null>(null);
   useEffect(() => {
     if (timelinePanelRef.current) {
-      setPaneSize(timelinePanelRef.current.getSize());
+      // setPaneSize(timelinePanelRef.current.getSize());
     }
   }, [timelinePanelRef.current?.getSize]);
   // const canvasSize: ObjV2 = { x: 1000, y: 300 };
@@ -193,7 +190,7 @@ function App() {
     // </div>
   );
 }
-function getIntersectionsBetween<TCountryCode extends string>(
+export function getIntersectionsBetween<TCountryCode extends string>(
   keyA: keyof typeof partitionA,
   keyB: keyof typeof partitionB,
   partitionA: Record<string, { highlightedCountries: TCountryCode[] }>,
@@ -206,7 +203,7 @@ function getIntersectionsBetween<TCountryCode extends string>(
     ),
   ];
 }
-function getSubtraction<TCountryCode extends string>(
+export function getSubtraction<TCountryCode extends string>(
   aList: TCountryCode[],
   subList: TCountryCode[]
 ): TCountryCode[] {
@@ -216,15 +213,15 @@ function getSubtraction<TCountryCode extends string>(
 }
 
 export default App;
-const PanelStyles: Record<string, React.CSSProperties> = {
-  container: {
-    height: "100%",
-    width: "100%",
-    display: "flex",
-    flexDirection: "row",
-    alignItems: " center",
-    justifyContent: " center",
-    overflow: "hidden",
-    borderRadius: " 0.5rem",
-  },
-};
+// const PanelStyles: Record<string, React.CSSProperties> = {
+//   container: {
+//     height: "100%",
+//     width: "100%",
+//     display: "flex",
+//     flexDirection: "row",
+//     alignItems: " center",
+//     justifyContent: " center",
+//     overflow: "hidden",
+//     borderRadius: " 0.5rem",
+//   },
+// };

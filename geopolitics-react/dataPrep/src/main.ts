@@ -1,9 +1,7 @@
 import { Command } from "commander";
 import figlet from "figlet";
 import fs from "fs";
-import fsAsync from "fs/promises";
 
-import { parse } from "papaparse";
 import {
   buildQueryStringAndPost,
   colonies,
@@ -132,122 +130,121 @@ program
       );
     }
   })
-  .option("-s, --sip  [filePath]", "Parse SIPRI file", undefined)
-  .action(async ({ sip }) => {
-    const overrideKeys: Record<string, string> = {
-      tidn: "number",
-      odat: "number|''|null",
-      onum: "number|''|null",
-      ldat: "number|''|null",
-      tivdel: "number|''|null",
-      tivunit: "number|''|null",
-      tivorder: "number|''|null",
-      delyears: "number|''|null",
-      nrdel: "number|''|null",
-    };
-    // https://armstrade.sipri.org/armstrade/html/export_trade_register.php --compressed     --data 'low_year=1950'     --data 'high_year=2023'     --data 'seller_country_code='     --data 'buyer_country_code='     --data 'armament_category_id=any'     --data 'buyers_or_sellers=sellers'     --data 'filetype=csv'     --data 'include_open_deals=on'     --data 'sum_deliveries=on'     --data 'Submit4=Download'
-    const rawData = await fsAsync.readFile(sip, { encoding: "utf8" });
-    const formatCellType = (val: string) =>
-      !Number.isNaN(Number.parseInt(val))
-        ? Number.parseInt(val)
-        : !Number.isNaN(Number.parseFloat(val))
-        ? Number.parseFloat(val)
-        : `${val}`;
-    const { data } = parse(rawData) as { data: string[][] };
-    const keys = data[0];
-    const transformedData = data
-      .slice(1)
-      .map((line) =>
-        Object.fromEntries(
-          line.map((val, ii) => [keys[ii], formatCellType(val)])
-        )
-      );
-    fs.writeFile(
-      `out/sipri.data.ts`,
-      `export const SIPRI = ${JSON.stringify(transformedData)}`,
-      (err) => console.log(err)
-    );
-    const dataTypes = Object.fromEntries(
-      Object.keys(transformedData[0]).map((key) => [
-        key,
-        key in overrideKeys
-          ? `__PLACEHOLDER__${key}`
-          : [...new Set(transformedData.map((line) => line[key]))],
-      ])
-    );
-    fs.writeFile(
-      `out/sipri.data.types.ts`,
-      `export type SIPRITypes = ${Object.keys(transformedData[0]).reduce(
-        (prev, key) => {
-          console.log("TEST", { key, prev });
-          return prev.replace(`"__PLACEHOLDER__${key}"`, overrideKeys[key]);
-        },
-        JSON.stringify(dataTypes)
-      )}`,
-      (err) => console.log(err)
-    );
-  })
-  .option("-a, --aec  [filePath]", "Parse AEC data files", undefined)
-  // /home/v/Projects/Geopolitics/trade/DATA/mergedData.csv
-  .action(async ({ aec }) => {
-    const overrideKeys: Record<string, string> = {
-      tidn: "number",
-      odat: "number|''|null",
-      onum: "number|''|null",
-      ldat: "number|''|null",
-      tivdel: "number|''|null",
-      tivunit: "number|''|null",
-      tivorder: "number|''|null",
-      delyears: "number|''|null",
-      nrdel: "number|''|null",
-    };
-    // https://armstrade.sipri.org/armstrade/html/export_trade_register.php --compressed     --data 'low_year=1950'     --data 'high_year=2023'     --data 'seller_country_code='     --data 'buyer_country_code='     --data 'armament_category_id=any'     --data 'buyers_or_sellers=sellers'     --data 'filetype=csv'     --data 'include_open_deals=on'     --data 'sum_deliveries=on'     --data 'Submit4=Download'
+  // .option("-s, --sip  [filePath]", "Parse SIPRI file", undefined)
+  // .action(async ({ sip }) => {
+  //   const overrideKeys: Record<string, string> = {
+  //     tidn: "number",
+  //     odat: "number|''|null",
+  //     onum: "number|''|null",
+  //     ldat: "number|''|null",
+  //     tivdel: "number|''|null",
+  //     tivunit: "number|''|null",
+  //     tivorder: "number|''|null",
+  //     delyears: "number|''|null",
+  //     nrdel: "number|''|null",
+  //   };
+  //   // https://armstrade.sipri.org/armstrade/html/export_trade_register.php --compressed     --data 'low_year=1950'     --data 'high_year=2023'     --data 'seller_country_code='     --data 'buyer_country_code='     --data 'armament_category_id=any'     --data 'buyers_or_sellers=sellers'     --data 'filetype=csv'     --data 'include_open_deals=on'     --data 'sum_deliveries=on'     --data 'Submit4=Download'
+  //   const rawData = await fsAsync.readFile(sip, { encoding: "utf8" });
+  //   const formatCellType = (val: string) =>
+  //     !Number.isNaN(Number.parseInt(val))
+  //       ? Number.parseInt(val)
+  //       : !Number.isNaN(Number.parseFloat(val))
+  //       ? Number.parseFloat(val)
+  //       : `${val}`;
+  //   const { data } = parse(rawData) as { data: string[][] };
+  //   const keys = data[0];
+  //   const transformedData = data
+  //     .slice(1)
+  //     .map((line) =>
+  //       Object.fromEntries(
+  //         line.map((val, ii) => [keys[ii], formatCellType(val)])
+  //       )
+  //     );
+  //   fs.writeFile(
+  //     `out/sipri.data.ts`,
+  //     `export const SIPRI = ${JSON.stringify(transformedData)}`,
+  //     (err) => console.log(err)
+  //   );
+  //   const dataTypes = Object.fromEntries(
+  //     Object.keys(transformedData[0]).map((key) => [
+  //       key,
+  //       key in overrideKeys
+  //         ? `__PLACEHOLDER__${key}`
+  //         : [...new Set(transformedData.map((line) => line[key]))],
+  //     ])
+  //   );
+  //   fs.writeFile(
+  //     `out/sipri.data.types.ts`,
+  //     `export type SIPRITypes = ${Object.keys(transformedData[0]).reduce(
+  //       (prev, key) => {
+  //         console.log("TEST", { key, prev });
+  //         return prev.replace(`"__PLACEHOLDER__${key}"`, overrideKeys[key]);
+  //       },
+  //       JSON.stringify(dataTypes)
+  //     )}`,
+  //     (err) => console.log(err)
+  //   );
+  // })
+  // .option("-a, --aec  [filePath]", "Parse AEC data files", undefined)
+  // // /home/v/Projects/Geopolitics/trade/DATA/mergedData.csv
+  // .action(async ({ aec }) => {
+  //   const overrideKeys: Record<string, string> = {
+  //     tidn: "number",
+  //     odat: "number|''|null",
+  //     onum: "number|''|null",
+  //     ldat: "number|''|null",
+  //     tivdel: "number|''|null",
+  //     tivunit: "number|''|null",
+  //     tivorder: "number|''|null",
+  //     delyears: "number|''|null",
+  //     nrdel: "number|''|null",
+  //   };
+  //   // https://armstrade.sipri.org/armstrade/html/export_trade_register.php --compressed     --data 'low_year=1950'     --data 'high_year=2023'     --data 'seller_country_code='     --data 'buyer_country_code='     --data 'armament_category_id=any'     --data 'buyers_or_sellers=sellers'     --data 'filetype=csv'     --data 'include_open_deals=on'     --data 'sum_deliveries=on'     --data 'Submit4=Download'
 
-    const rawData: string[][] = [];
-    console.log(aec);
-    fs.readFile(aec, { encoding: "utf8" }, (err, data) =>
-      console.log("TEST", err, data)
-    );
-    const formatCellType = (val: string) =>
-      !Number.isNaN(Number.parseInt(val))
-        ? Number.parseInt(val)
-        : !Number.isNaN(Number.parseFloat(val))
-        ? Number.parseFloat(val)
-        : `${val}`;
-    // const { data } = parse(rawData) as { data: string[][] };
-    // const keys = data[0];
-    // const transformedData = data
-    //   .slice(1)
-    //   .map((line) =>
-    //     Object.fromEntries(
-    //       line.map((val, ii) => [keys[ii], formatCellType(val)])
-    //     )
-    //   );
-    // fs.writeFile(
-    //   `out/AEC.data.ts`,
-    //   `export const SIPRI = ${JSON.stringify(transformedData)}`,
-    //   (err) => console.log(err)
-    // );
-    // const dataTypes = Object.fromEntries(
-    //   Object.keys(transformedData[0]).map((key) => [
-    //     key,
-    //     key in overrideKeys
-    //       ? `__PLACEHOLDER__${key}`
-    //       : [...new Set(transformedData.map((line) => line[key]))],
-    //   ])
-    // );
-    // fs.writeFile(
-    //   `out/AEC.data.types.ts`,
-    //   `export type SIPRITypes = ${Object.keys(transformedData[0]).reduce(
-    //     (prev, key) => {
-    //       console.log("TEST", { key, prev });
-    //       return prev.replace(`"__PLACEHOLDER__${key}"`, overrideKeys[key]);
-    //     },
-    //     JSON.stringify(dataTypes)
-    //   )}`,
-    //   (err) => console.log(err)
-    // );
-  })
+  //   const rawData: string[][] = [];
+  //   fs.readFile(aec, { encoding: "utf8" }, (err, data) =>
+  //     console.log("TEST", err, data)
+  //   );
+  //   const formatCellType = (val: string) =>
+  //     !Number.isNaN(Number.parseInt(val))
+  //       ? Number.parseInt(val)
+  //       : !Number.isNaN(Number.parseFloat(val))
+  //       ? Number.parseFloat(val)
+  //       : `${val}`;
+  //   // const { data } = parse(rawData) as { data: string[][] };
+  //   // const keys = data[0];
+  //   // const transformedData = data
+  //   //   .slice(1)
+  //   //   .map((line) =>
+  //   //     Object.fromEntries(
+  //   //       line.map((val, ii) => [keys[ii], formatCellType(val)])
+  //   //     )
+  //   //   );
+  //   // fs.writeFile(
+  //   //   `out/AEC.data.ts`,
+  //   //   `export const SIPRI = ${JSON.stringify(transformedData)}`,
+  //   //   (err) => console.log(err)
+  //   // );
+  //   // const dataTypes = Object.fromEntries(
+  //   //   Object.keys(transformedData[0]).map((key) => [
+  //   //     key,
+  //   //     key in overrideKeys
+  //   //       ? `__PLACEHOLDER__${key}`
+  //   //       : [...new Set(transformedData.map((line) => line[key]))],
+  //   //   ])
+  //   // );
+  //   // fs.writeFile(
+  //   //   `out/AEC.data.types.ts`,
+  //   //   `export type SIPRITypes = ${Object.keys(transformedData[0]).reduce(
+  //   //     (prev, key) => {
+  //   //       console.log("TEST", { key, prev });
+  //   //       return prev.replace(`"__PLACEHOLDER__${key}"`, overrideKeys[key]);
+  //   //     },
+  //   //     JSON.stringify(dataTypes)
+  //   //   )}`,
+  //   //   (err) => console.log(err)
+  //   // );
+  // })
   //   .option("-b, --build  [value...]", "Build data from retrieved query values")
   .parse(process.argv);
 

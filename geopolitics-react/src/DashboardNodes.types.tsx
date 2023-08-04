@@ -2,7 +2,7 @@ import {
   HighlightSpecification,
   HistoricalEvent,
   WorldMapType,
-} from "react-konva-components";
+} from "react-konva-components/src";
 import { Observable } from "rxjs";
 import { HexString, ObjV2, ScreenSpace } from "type-library";
 import type {
@@ -21,7 +21,7 @@ import {
 import { AdaptPlugin } from "./DashboardNodes";
 import type { PeriodOrSingleton } from "./types";
 
-type TransformNodeType = "";
+export type TransformNodeType = "";
 type FlavorShape = {
   Tree: { shape: Tree<object> };
   Boolean: { shape: boolean };
@@ -44,8 +44,9 @@ type FlavorShape = {
 };
 // TODO maybe 'string list'/'number list'?
 export type Flavor = keyof FlavorShape;
-type FlavorSocket<TFlavor extends Flavor> = { flavor: TFlavor };
+type FlavorSocket<TFlavor extends Flavor> = { id: string; flavor: TFlavor };
 type FlavorJoint<TFlavor extends Flavor> = {
+  id: string;
   flavor: TFlavor;
   jointDataObservable: Observable<FlavorShape[TFlavor]>;
   // getJointData: ()=>FlavorShape[TFlavor];
@@ -107,6 +108,7 @@ export type DataNodeType<
     null
   >
 > = IGenericDashboardNode<
+  string,
   TDataString,
   null,
   TOutputs,
@@ -128,53 +130,62 @@ export type TNodeComponent<
 // TODO tooltip node? or tooltip per-node??
 // TODO plugin architecture
 // TODO 3d node? plugin
-export interface IGenericDashboardNode<
+export type IGenericDashboardNode<
+  TId extends string,
   TType extends string = AllowedNodes,
-  TInputs extends null | Record<string, { flavor: Flavor }> = Record<
-    string,
-    { flavor: Flavor }
-  >,
-  TOutputs extends null | Record<string, { flavor: Flavor }> = Record<
-    string,
-    { flavor: Flavor }
-  >,
-  TOptions extends null | Record<string, { flavor: Flavor }> = Record<
-    string,
-    { flavor: Flavor }
-  >,
+  TInputs extends null | Record<string, { flavor: Flavor }> = null,
+  TOutputs extends null | Record<string, { flavor: Flavor }> = null,
+  TOptions extends null | Record<string, { flavor: Flavor }> = null,
   // Component is only relevant for 'viewable' components - they might still have outputs (think like selections from a viewer)
   // TODO setSelected as service - anything based on viewer interaction needs access to a mutatable store
   // TODO 'register dashboard' in query/service
-  TComponent extends TNodeComponent<
-    TInputs,
-    TOutputs,
-    TOptions
-  > = TNodeComponent<TInputs, TOutputs, TOptions>,
-  TGroup extends string[] = ["Other"],
-  TFunction extends TInputs extends Record<string, Flavor>
-    ? TOutputs extends Record<string, Flavor>
-      ? TransformWidget<TInputs, TOutputs>
-      : undefined
-    : undefined = TInputs extends Record<string, Flavor>
-    ? TOutputs extends Record<string, Flavor>
-      ? TransformWidget<TInputs, TOutputs>
-      : undefined
-    : undefined
-> {
+  TComponent extends null | TNodeComponent<TInputs, TOutputs, TOptions> = null,
+  TGroup extends null | string[] = null,
+  TObservable extends null | true = null
+> = {
+  id: TId;
   type: TType;
-  inputs: TInputs;
-  outputs: TOutputs;
-  options: TOptions;
-  Component: TComponent;
-  group?: TGroup;
-  // maybe deprecate
-  function?: TFunction;
-  functionObservable?: (
-    inputs: Observable<TInputs>[]
-  ) => Observable<TOutputs>[];
-}
+} & (TInputs extends null
+  ? object
+  : {
+      inputs: TInputs;
+    }) &
+  (TOutputs extends null
+    ? object
+    : {
+        outputs: TOutputs;
+      }) &
+  (TOptions extends null
+    ? object
+    : {
+        options: TOptions;
+      }) &
+  (TGroup extends null
+    ? object
+    : {
+        group: TGroup;
+      }) &
+  (TComponent extends null
+    ? object
+    : {
+        Component: TComponent;
+      }) &
+  (TObservable extends null
+    ? object
+    : {
+        functionObservable: (
+          inputs: TInputs extends Record<string, { flavor: Flavor }>
+            ? Observable<BreakdownFlavorMap<TInputs>>
+            : null
+        ) => Observable<TOutputs>;
+      });
 
+type BreakdownFlavorMap<
+  TMap extends Record<string, { flavor: Flavor }>,
+  TKeys extends keyof TMap = keyof TMap
+> = Record<TKeys, FlavorShape[TMap[TKeys]["flavor"]]>;
 export type IMapNode<TEntityKey extends number> = IGenericDashboardNode<
+  string,
   "Map",
   {
     entities: {
@@ -192,6 +203,7 @@ export type IMapNode<TEntityKey extends number> = IGenericDashboardNode<
   typeof WorldMapDashboardNode
 >;
 export type ITimelineNode<TEntityKey extends number> = IGenericDashboardNode<
+  string,
   "Timeline",
   {
     entities: {
@@ -221,6 +233,7 @@ type AllowedNodeTypeLookup = {
 type AllowedNodes = keyof AllowedNodeTypeLookup;
 
 export type INetworkNode = IGenericDashboardNode<
+  string,
   "Network",
   {
     entities: {

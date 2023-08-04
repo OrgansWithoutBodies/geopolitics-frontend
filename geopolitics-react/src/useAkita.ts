@@ -1,6 +1,6 @@
 import { Query } from "@datorama/akita";
-import { Observable, ObservedValueOf } from "rxjs";
 import { pick } from "rambdax";
+import { Observable, ObservedValueOf } from "rxjs";
 
 import { useEffect, useState } from "react";
 import { dataQuery } from "./data/data.query";
@@ -23,6 +23,7 @@ export function useAkita<
   service: TService,
   queryTerms: SubscribedQueryKeys<TQuery>
 ): [LiteralQueryState<TQuery, typeof queryTerms>, TService[keyof TService][]] {
+  console.log("TODO make proxy with ", service);
   const [retrievedQueryTerms, setRetrievedQueryTerms] = useState<
     LiteralQueryState<TQuery, typeof queryTerms>
   >(

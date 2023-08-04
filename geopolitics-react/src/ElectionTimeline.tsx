@@ -1,7 +1,6 @@
-import elections from "../elections.json";
 import { Timeline } from "./Timeline";
 export function ElectionTimeline(): JSX.Element {
-  const test = elections;
+  // const test = elections;
   return (
     <Timeline
       stageSize={{
