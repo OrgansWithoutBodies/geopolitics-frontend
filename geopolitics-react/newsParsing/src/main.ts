@@ -2,17 +2,13 @@ import axios from "axios";
 import fs from "fs";
 import { HTMLElement, Node, parse as htmlParser } from "node-html-parser";
 import Parser from "rss-parser";
+import { sleep } from "./sleep";
 
 // TODO
 // https://spacy.io/universe/project/spacy-js
 // maybe? parse things without direct wiki page links
 
 const S_IN_MS = 1000;
-async function sleep(lenMS: number) {
-  await new Promise((r) => setTimeout(r, lenMS));
-  console.log(`Waited ${lenMS}ms to be friendly`);
-}
-
 function getHrefContent(val: HTMLElement): string | undefined {
   return val.rawAttrs
     .split(" ")

@@ -24,7 +24,9 @@ RUN yarn
 WORKDIR "./dataPrep/"
 RUN mkdir out
 RUN yarn
+RUN npx ts-node src/main.ts --wd countries
 RUN npx ts-node src/main.ts --wd internationalOrganizations
+RUN npx ts-node src/main.ts --wd wars
 WORKDIR "../"
 RUN yarn
 RUN yarn build

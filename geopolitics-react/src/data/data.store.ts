@@ -1,8 +1,12 @@
 import { Store } from "@datorama/akita";
 import { HistoricalEvent, NetworkNode } from "react-konva-components/src";
 import { NetworkEdge } from "type-library/src";
-import { WDType } from "../../dataPrep/out/internationalOrganizations.data";
-import { QCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
+import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
+import { QCodes as WDCountryQCodes } from "../../dataPrep/out/countries.qcodes.data";
+import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
+import { QCodes as WDInternationalOrgQCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
+import { WDType as WDWar } from "../../dataPrep/out/wars.data";
+import { QCodes as WDWarQCodes } from "../../dataPrep/out/wars.qcodes.data";
 import type { EventID, NodeID, TimeSpace } from "../types";
 type NodeLookup = Record<NodeID, NetworkNode>;
 const nodesLookup: NodeLookup = {
@@ -26,8 +30,12 @@ export interface DataState {
   finalDateFilter: TimeSpace | null;
   networkNodes: NodeLookup;
   networkEdges: NetworkEdge[];
-  internationalOrgs: typeof WDType;
-  internationalOrgsQCodes: typeof QCodes;
+  internationalOrgs: typeof WDInternationalOrg;
+  internationalOrgsQCodes: typeof WDInternationalOrgQCodes;
+  wars: typeof WDWar;
+  warsQCodes: typeof WDWarQCodes;
+  countries: typeof WDCountry;
+  countriesQCodes: typeof WDCountryQCodes;
 }
 
 // TODO persist
@@ -35,8 +43,12 @@ export function createInitialState(): DataState {
   return {
     networkNodes: nodesLookup,
     networkEdges: edges,
-    internationalOrgs: WDType,
-    internationalOrgsQCodes: QCodes,
+    internationalOrgs: WDInternationalOrg,
+    internationalOrgsQCodes: WDInternationalOrgQCodes,
+    wars: WDWar,
+    warsQCodes: WDWarQCodes,
+    countries: WDCountry,
+    countriesQCodes: WDCountryQCodes,
     events: [
       {
         id: 1 as EventID,

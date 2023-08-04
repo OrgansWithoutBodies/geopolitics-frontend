@@ -1,10 +1,12 @@
+import axios from "axios";
 import { Command } from "commander";
 import figlet from "figlet";
 import fs from "fs";
-
+import { sleep } from "./sleep";
 import {
   buildQueryStringAndPost,
   colonies,
+  countries,
   getQCodeNames,
   independenceDeclarations,
   internationalOrganizations,
@@ -39,6 +41,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   wars,
   military: militaryAlliances,
   pmcs,
+  countries,
   colonies,
   rocks,
   metals,
@@ -128,6 +131,38 @@ program
         `export const QCodes = ${JSON.stringify(qCodeQueryResults)} as const;`,
         (err) => console.log(err)
       );
+
+      // TODO formulate this better - this is where outlines come from
+      if (name === "countries") {
+        if (!fs.existsSync("out/countries")) {
+          fs.mkdirSync("out/countries");
+        }
+
+        for (const country of data.validatedData) {
+          const MS_IN_SEC = 1000;
+          const countryOutlineURL = (country.shape as { value: string }).value
+            .split("+")
+            .join("%20");
+          console.log("TEST123-country", countryOutlineURL);
+          if (
+            !fs.existsSync(
+              `out/countries/${country.item.value}.outline.data.json`
+            )
+          ) {
+            await sleep(2 * MS_IN_SEC);
+            const countryResult = await axios.get(countryOutlineURL, {});
+            if (!(countryResult["status"] === 200)) {
+              // return null;
+              throw new Error();
+            }
+            fs.writeFile(
+              `out/countries/${country.item.value}.outline.data.json`,
+              `${JSON.stringify(countryResult.data.data)}`,
+              (err) => console.log(err)
+            );
+          }
+        }
+      }
     }
   })
   // .option("-s, --sip  [filePath]", "Parse SIPRI file", undefined)

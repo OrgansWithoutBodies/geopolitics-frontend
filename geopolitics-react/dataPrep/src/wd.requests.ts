@@ -244,6 +244,50 @@ export const newsAgencies = {
     },
   },
 } as const;
+
+// inception (P571)
+// dissolved, abolished or demolished date (P576)
+export const countries = {
+  mainValue: "wd:Q6256",
+  includeSubclasses: true,
+  query: {
+    // ...TIME_PERIOD_BLOCK({
+    //   startType: "P580",
+    //   endType: "P582",
+    //   startOptional: true,
+    //   endOptional: true,
+    // }),
+    shape: {
+      sourceKey: "item",
+      pCode: "P3896",
+      valueKey: "?shape",
+      joinChar: ".",
+      optional: false,
+    },
+    stateStart: {
+      sourceKey: "item",
+      pCode: "P571",
+      valueKey: "?stateStart",
+      joinChar: ".",
+      optional: false,
+    },
+    stateEnd: {
+      sourceKey: "item",
+      pCode: "P571",
+      valueKey: "?stateEnd",
+      joinChar: ".",
+      optional: true,
+    },
+    // participant: {
+    //   // TODO some way of encoding that this returns a country
+    //   sourceKey: "item",
+    //   pCode: "P710",
+    //   valueKey: "?participant",
+    //   joinChar: ".",
+    //   optional: false,
+    // },
+  },
+} as const;
 export const wars = {
   mainValue: "wd:Q198",
   includeSubclasses: true,
@@ -278,6 +322,7 @@ const getInstancesOf = (code: QCode<number>) =>
     query: {},
   } as const);
 export const minerals = getAllSubcategoriesOf("Q889659");
+// export const countries = getInstancesOf("Q6256");
 export const metals = getAllSubcategoriesOf("Q11426");
 export const rocks = getAllSubcategoriesOf("Q8063");
 export const colonies = getAllSubcategoriesOf("Q133156");
@@ -425,6 +470,7 @@ export async function buildQueryStringAndPost<
     includeSubclasses
   );
 
+  console.log("TEST123-str", builtStr);
   const result: RawResponseFromWD<TRefs, TKeys> = await axios.get(url, {
     params: { query: builtStr, format: "json" },
   });

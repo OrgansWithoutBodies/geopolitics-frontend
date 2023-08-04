@@ -2,6 +2,7 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 
 import { useEffect, useRef, useState } from "react";
 import { countryInfo } from "./countryData";
+import { useData } from "./useAkita";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
 
@@ -120,6 +121,8 @@ function App() {
   //   Europe: "cyan",
   //   Oceania: "red",
   // };
+  const [{ countries }] = useData(["countries"]);
+  console.log("TEST123", countries);
   const [year, setYear] = useState(2000);
   // const mapCountryData = (
   //   key: CountryInfoKey<typeof countryInfo>,

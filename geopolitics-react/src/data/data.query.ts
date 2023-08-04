@@ -254,6 +254,29 @@ export class DataQuery extends Query<DataState> {
     this.latestEventEnd,
   ]).pipe(map(([date, fallback]) => (date ? date : fallback)));
 
+  private rawCountries = this.select("countries");
+  private countriesQCodes = this.select("countriesQCodes");
+  private existingCountries = this.rawCountries.pipe(
+    map((countries) => {
+      return countries.filter((country) => country.stateEnd === undefined);
+    })
+  );
+
+  public countries = combineLatest([
+    this.existingCountries,
+    this.countriesQCodes,
+  ]).pipe(
+    map(([countries, countriesQCodes]) => {
+      return countries.map((country) => ({
+        ...country,
+        item: {
+          ...country.item,
+          valueString: countriesQCodes[country.item.value],
+        },
+      }));
+    })
+  );
+  public countriesInSameAlliance = [];
   public unfilteredEarliestEventStart =
     this.unfilteredEventsSortedByStartDate.pipe(
       map(([{ eventTime }]) => {
