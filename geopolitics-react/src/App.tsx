@@ -2,7 +2,10 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 
 import { useEffect, useRef, useState } from "react";
 import { WorldMap } from "react-konva-components/src";
+import { Timeline } from "./Timeline";
 import { countryInfo } from "./countryData";
+import { dataService } from "./data/data.service";
+import { CountryID } from "./data/data.store";
 import { useData } from "./useAkita";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
@@ -96,24 +99,12 @@ const subtractSets = (a: Set<any>, b: Set<any>, U: Set<any>) =>
 //   ]);
 // }
 function App() {
-  // const ref = useRef<ImperativePanelGroupHandle>(null);
-
-  // const resetLayout = () => {
-  //   const panelGroup = ref.current;
-  //   if (panelGroup) {
-  //     // Reset each Panel to 50% of the group's width
-  //     panelGroup.setLayout([50, 50]);
-  //   }
-  // }
-  // type MembershipStatus = "current" | "applied" | "interest";
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
-  // const [paneSize, setPaneSize] = useState<number | null>(null);
   useEffect(() => {
     if (timelinePanelRef.current) {
       // setPaneSize(timelinePanelRef.current.getSize());
     }
   }, [timelinePanelRef.current?.getSize]);
-  // const canvasSize: ObjV2 = { x: 1000, y: 300 };
   // const regionColorMap: RegionColorMap = {
   //   Africa: "green",
   //   Americas: "yellow",
@@ -122,27 +113,14 @@ function App() {
   //   Europe: "cyan",
   //   Oceania: "red",
   // };
-  const [{ countries, countryToName }] = useData([
-    "countryToName",
-    "countries",
-  ]);
-  console.log("TEST123", countries);
+  const [{ countryStarts, countries, countryToName, selectedCountry }] =
+    useData(["countryToName", "countryStarts", "countries", "selectedCountry"]);
   const [year, setYear] = useState(2000);
-  // const mapCountryData = (
-  //   key: CountryInfoKey<typeof countryInfo>,
-  //   value: CountryInfoKey<typeof countryInfo>
-  // ) =>
-  //   Object.fromEntries(
-  //     countryInfo.map((country) => [country[key], country[value]])
-  //   );
-  // const countryToRegion = mapCountryData(
-  //   "alpha-3",
-  //   "region"
-  // ) as CountryRegionLookup<CountryCode>;
-  // const countryToName = mapCountryData(
-  //   "alpha-3",
-  //   "name"
-  // ) as CountryNameLookup<CountryCode>;
+  const MS_IN_S = 1000;
+  const S_IN_MIN = 60;
+  const MIN_IN_HOUR = 60;
+  const HOUR_IN_DAY = 24;
+  const DAY_IN_YEAR = 365;
   return (
     <>
       <div>
@@ -159,9 +137,40 @@ function App() {
           contents={{
             countries,
             countryToName,
+            countryLines: [],
+            onClick: (id) => dataService.setSelectedCountry(id),
+            highlights: [
+              {
+                highlightColor: "#FFFF00",
+                highlightedCountries:
+                  selectedCountry !== null ? [selectedCountry] : [],
+              },
+            ],
           }}
         />
       )}
+      {countryStarts && (
+        <Timeline
+          // can only switch ID type bc rn we're using the same code, terrible pattern TODO
+          onEventClick={(eventId) => {
+            dataService.setSelectedCountry(eventId as any as CountryID);
+          }}
+          stageSize={{
+            x: 1024,
+            y: 780,
+          }}
+          events={countryStarts}
+          // we pass in "MS since Jan 1 1970"
+          yearFactor={
+            1 / (DAY_IN_YEAR * HOUR_IN_DAY * MIN_IN_HOUR * S_IN_MIN * MS_IN_S)
+          }
+          yearOffset={1970}
+        />
+      )}
+      <div>All visible data comes directly from WikiData</div>
+      <div>Known Issues:</div>
+      <p>Some founding events are doubled</p>
+      <p>Event Timeline </p>
     </>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
     //   <div className={styles.Container}>
@@ -212,15 +221,3 @@ export function getSubtraction<TCountryCode extends string>(
 }
 
 export default App;
-// const PanelStyles: Record<string, React.CSSProperties> = {
-//   container: {
-//     height: "100%",
-//     width: "100%",
-//     display: "flex",
-//     flexDirection: "row",
-//     alignItems: " center",
-//     justifyContent: " center",
-//     overflow: "hidden",
-//     borderRadius: " 0.5rem",
-//   },
-// };

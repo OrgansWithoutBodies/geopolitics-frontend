@@ -21,6 +21,7 @@ import {
   regimeChanges,
   revolutions,
   rocks,
+  tradeBlocs,
   wars,
 } from "./wd.requests";
 import { QCode } from "./wd.types";
@@ -54,6 +55,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   independence: independenceDeclarations,
   parties,
   revolutions,
+  tradeBlocs,
   // hospitals,
   // unMemberStates,
 };

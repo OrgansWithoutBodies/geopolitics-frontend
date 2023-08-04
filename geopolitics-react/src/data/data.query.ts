@@ -16,6 +16,7 @@ import type {
 } from "type-library/src";
 import { periodIsSegmentGuard } from "../Timeline";
 import type {
+  EventID,
   LineSegment,
   PeriodOrSingleton,
   RenderableEvent,
@@ -278,18 +279,59 @@ export class DataQuery extends Query<DataState> {
   > = combineLatest([this.existingCountries, this.countryOutlines]).pipe(
     map(([countries, countryOutlines]) => {
       return countries.map((country) => ({
-        // ...country,
-        key: Number.parseInt(country.item.value.replace("Q", "")),
+        key: numericalQCode(country),
         // TODO no any
         geometry: countryOutlines[
           country.item.value
         ] as any as GeoJsonGeometryGeneric,
-        // outline: countryOutlines[country.item.value],
-        // item: {
-        //   ...country.item,
-        //   valueString: countriesQCodes[country.item.value],
-        // },
       }));
+    })
+  );
+  public selectedCountry: Observable<CountryID> =
+    this.select("selectedCountry");
+  // 0800-01-01T00:00:00Z
+  public countryStarts: Observable<RenderableEvent[]> = combineLatest([
+    this.existingCountries,
+    this.countriesQCodes,
+    this.selectedCountry,
+  ]).pipe(
+    map(([countries, qCodes, selectedCountry]) => {
+      const sortedCountries = [...countries].sort((a, b) =>
+        new Date(a.stateStart.value) > new Date(b.stateStart.value) ? 1 : -1
+      );
+      const earliestEvent = new Date(
+        sortedCountries[0].stateStart.value
+      ).getTime() as TimeSpace;
+      const latestEvent = new Date(
+        sortedCountries[sortedCountries.length - 1].stateStart.value
+      ).getTime() as TimeSpace;
+      return sortedCountries.map((country) => {
+        const startDate = country.stateStart.value;
+        // const [date, _time] = startDate.split("T");
+        // const [Y, M, D] = date.split("-");
+        const eventTime = new Date(startDate).getTime() as TimeSpace;
+        const positioner = DataQuery.buildEventPositioner(
+          earliestEvent,
+          latestEvent
+        );
+        const genericProps = {
+          id: numericalQCode(country) as EventID,
+          eventName: `Beginning of ${qCodes[country.item.value]}`,
+          eventInfo: "",
+          eventTime,
+        };
+        return {
+          ...genericProps,
+          renderedProps: {
+            // TODO no as any, same as overloading country & event id as same
+            color:
+              (selectedCountry as any) === (genericProps.id as any)
+                ? "#FFFF00"
+                : "#FF0000",
+            position: positioner(genericProps),
+          },
+        };
+      });
     })
   );
   public countryToName: Observable<CountryNameLookup<number>> = combineLatest([
@@ -299,10 +341,7 @@ export class DataQuery extends Query<DataState> {
     map(([countries, countriesQCodes]) => {
       return Object.fromEntries(
         countries.map((country) => {
-          return [
-            Number.parseInt(country.item.value.replace("Q", "")),
-            countriesQCodes[country.item.value],
-          ];
+          return [numericalQCode(country), countriesQCodes[country.item.value]];
         })
       );
     })
@@ -351,3 +390,6 @@ export class DataQuery extends Query<DataState> {
   );
 }
 export const dataQuery = new DataQuery(dataStore);
+function numericalQCode(country: { item: { value: `Q${number}` } }): number {
+  return Number.parseInt(country.item.value.replace("Q", ""));
+}

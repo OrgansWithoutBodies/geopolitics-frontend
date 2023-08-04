@@ -126,11 +126,13 @@ export function TimelineEvents({
   events,
   onMouseOver,
   onMouseLeave,
+  onEventClick,
 }: // onMouseMove,
 {
   events: RenderableEvent[];
   onMouseOver: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
   onMouseLeave: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
+  onEventClick: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
   // onMouseMove: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
 }): JSX.Element {
   const { convertToKonvaCoord, divisionLen } = useTimelineContext();
@@ -139,6 +141,7 @@ export function TimelineEvents({
       {events.map((event) => {
         return (
           <Circle
+            onClick={(mouseEvent) => onEventClick(event.id, mouseEvent)}
             onMouseOver={(mouseEvent) => onMouseOver(event.id, mouseEvent)}
             onMouseLeave={(mouseEvent) => onMouseLeave(event.id, mouseEvent)}
             // onMouseMove={(mouseEvent) => onMouseMove(event.id, mouseEvent)}
@@ -163,8 +166,10 @@ type Tooltip = {
 
 export function TimelineTooltip({
   tooltip: tooltip,
+  offsetDate,
 }: {
   tooltip: Tooltip | null;
+  offsetDate: (eventTimeInMS: TimeSpace) => TimeSpace;
 }): JSX.Element {
   const titlePosY = 0;
   const tooltipHeight = 100;
@@ -172,6 +177,7 @@ export function TimelineTooltip({
   const diamondRadius = Math.sqrt(2 * diamondSize ** 2);
 
   const { convertToKonvaCoord } = useTimelineContext();
+  const tooltipWidth = 200;
   return (
     <>
       {tooltip !== null && (
@@ -186,7 +192,7 @@ export function TimelineTooltip({
           />
           <Group x={-1 * diamondRadius}>
             <Rect
-              width={100}
+              width={tooltipWidth}
               height={tooltipHeight}
               cornerRadius={5}
               fill="gray"
@@ -213,7 +219,7 @@ export function TimelineTooltip({
               alpha={0.75}
             />
             <Text
-              text={tooltip.dates}
+              text={offsetDate(tooltip.dates)}
               y={titlePosY + 40}
               fontSize={10}
               padding={10}
@@ -241,24 +247,28 @@ const formatDates = ({ eventTime }: HistoricalEvent): string => {
 export function Timeline({
   stageSize,
   events,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  onEventClick = () => {},
+  yearFactor = 1,
+  yearOffset = 0,
 }: {
   stageSize: ObjV2;
   events: RenderableEvent[];
+  yearFactor?: number;
+  yearOffset?: number;
+  onEventClick?: (event: EventID) => void;
 }): JSX.Element {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const [
-    {
-      // renderReadyEvents: events,
-      finalDateFilterWithFallback: latestEventEnd,
-      initialDateFilterWithFallback: earliestEventStart,
-    },
-  ] = useData([
-    // "renderReadyEvents",
-    "finalDateFilterWithFallback",
+  // const sortedEvents = events.sort((a, b) =>
 
-    "initialDateFilterWithFallback",
-  ]);
-
+  function offsetDate(latestEventEnd: TimeSpace): TimeSpace {
+    return Math.round(latestEventEnd * yearFactor + yearOffset) as TimeSpace;
+  }
+  //   a.eventTime > b.eventTime ? -1 : 1
+  // );
+  // WE ASSUME SORTED - TODO encode in type
+  const earliestEventStart = events[0].eventTime as TimeSpace;
+  const latestEventEnd = events[events.length - 1].eventTime as TimeSpace;
   return (
     <TimelineContext.Provider value={TimelineVariables}>
       {/* <FilterEvents /> */}
@@ -270,8 +280,8 @@ export function Timeline({
         <Layer x={TimelineVariables.timelineLeftPadding}>
           {latestEventEnd && earliestEventStart && (
             <TimelineBackground
-              lastDate={latestEventEnd}
-              firstDate={earliestEventStart}
+              lastDate={offsetDate(latestEventEnd)}
+              firstDate={offsetDate(earliestEventStart)}
             />
           )}
           {events && (
@@ -291,8 +301,13 @@ export function Timeline({
                     desc: hitEvent.eventInfo,
                     title: hitEvent.eventName,
                   });
+                  console.log("TEST123", hitEvent);
                 }
               }}
+              onEventClick={(
+                id: EventID
+                // event: KonvaEventObject<MouseEvent>
+              ) => onEventClick(id)}
               onMouseLeave={function (): void {
                 setTooltip(null);
               }}
@@ -304,7 +319,7 @@ export function Timeline({
               // }}
             />
           )}
-          <TimelineTooltip tooltip={tooltip} />
+          <TimelineTooltip tooltip={tooltip} offsetDate={offsetDate} />
         </Layer>
       </Stage>
     </TimelineContext.Provider>

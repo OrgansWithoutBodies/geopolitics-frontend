@@ -1,6 +1,6 @@
 import type { KonvaSpace, ObjV2 } from "type-library/src";
 import { NodeID, TimeSpace } from "../types";
-import { DataStore, dataStore } from "./data.store";
+import { CountryID, DataStore, dataStore } from "./data.store";
 
 export class DataService {
   public setInitialDateFilter(initialDateFilter: TimeSpace | null) {
@@ -16,6 +16,14 @@ export class DataService {
       return {
         ...state,
         finalDateFilter,
+      };
+    });
+  }
+  public setSelectedCountry(countryID: CountryID) {
+    this.dataStore.update((state) => {
+      return {
+        ...state,
+        selectedCountry: countryID,
       };
     });
   }

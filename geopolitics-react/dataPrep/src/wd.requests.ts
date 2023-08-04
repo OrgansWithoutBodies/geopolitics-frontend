@@ -288,6 +288,19 @@ export const countries = {
     // },
   },
 } as const;
+export const tradeBlocs = {
+  mainValue: "wd:Q1129645",
+  includeSubclasses: true,
+  query: {
+    memberState: {
+      sourceKey: "item",
+      pCode: "P527",
+      valueKey: "?memberState",
+      joinChar: ".",
+      optional: false,
+    },
+  },
+} as const;
 export const wars = {
   mainValue: "wd:Q198",
   includeSubclasses: true,
