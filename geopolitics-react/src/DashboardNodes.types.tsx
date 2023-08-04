@@ -2,9 +2,8 @@ import {
   HighlightSpecification,
   HistoricalEvent,
   WorldMapType,
-} from "react-konva-components";
+} from "react-konva-components/src";
 import { Observable } from "rxjs";
-import { HexString, ObjV2, ScreenSpace } from "type-library";
 import type {
   GenericArrow,
   NodeID,
@@ -14,6 +13,7 @@ import type {
   TimeSpace,
   Tree,
 } from "type-library/src";
+import { HexString, ObjV2, ScreenSpace } from "type-library/src";
 import {
   NetworkDashboardNode,
   WorldMapDashboardNode,

@@ -1,5 +1,5 @@
 // TODO overwrite array join/reverse prototypes to have rich typing
-import type { BrandedNumber } from "type-library";
+import type { BrandedNumber } from "type-library/src";
 export type WDId<TCategory extends string> = string & {
   __brand: "WDId";
   __category: TCategory;

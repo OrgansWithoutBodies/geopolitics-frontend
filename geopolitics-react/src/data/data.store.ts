@@ -1,6 +1,6 @@
 import { Store } from "@datorama/akita";
-import { HistoricalEvent, NetworkNode } from "react-konva-components";
-import { NetworkEdge } from "type-library";
+import { HistoricalEvent, NetworkNode } from "react-konva-components/src";
+import { NetworkEdge } from "type-library/src";
 import { WDType } from "../../dataPrep/out/internationalOrganizations.data";
 import { QCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
 import type { EventID, NodeID, TimeSpace } from "../types";

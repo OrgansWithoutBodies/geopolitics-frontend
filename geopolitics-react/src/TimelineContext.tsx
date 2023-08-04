@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { KonvaSpace } from "type-library";
+import { KonvaSpace } from "type-library/src";
 import { SpaceConvertingFunction, TimelineSpace } from "./types";
 
 type TimelineVars = {

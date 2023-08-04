@@ -4,14 +4,14 @@ import {
   HistoricalEvent,
   forceDirectedGraph,
   rawNetworkToAdjMat,
-} from "react-konva-components";
+} from "react-konva-components/src";
 import { Observable, combineLatest, map } from "rxjs";
 import type {
   AdjacencyMatrix,
   HexString,
   RawNetwork,
   RenderableNetworkNode,
-} from "type-library";
+} from "type-library/src";
 import { periodIsSegmentGuard } from "../Timeline";
 import type {
   LineSegment,

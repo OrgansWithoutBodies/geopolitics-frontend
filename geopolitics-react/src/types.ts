@@ -1,5 +1,5 @@
-import { HistoricalEvent } from "react-konva-components";
-import type { ArrV3, HexString } from "type-library";
+import { HistoricalEvent } from "react-konva-components/src";
+import type { ArrV3, HexString } from "type-library/src";
 
 export type RangeBrandTag<TMin extends number, TMax extends number> = {
   __min: TMin;
