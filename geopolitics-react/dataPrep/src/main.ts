@@ -137,13 +137,22 @@ program
         if (!fs.existsSync("out/countries")) {
           fs.mkdirSync("out/countries");
         }
+        fs.writeFileSync(
+          "out/countries/index.ts",
+          `${Object.keys(qCodeQueryResults)
+            .map((qcode) => {
+              return `import ${qcode} from './${qcode}.outline.data.json';`;
+            })
+            .join("\n")}\nexport const CountryOutlines = {${Object.keys(
+            qCodeQueryResults
+          ).join(",")}}`
+        );
 
         for (const country of data.validatedData) {
           const MS_IN_SEC = 1000;
           const countryOutlineURL = (country.shape as { value: string }).value
             .split("+")
             .join("%20");
-          console.log("TEST123-country", countryOutlineURL);
           if (
             !fs.existsSync(
               `out/countries/${country.item.value}.outline.data.json`

@@ -96,12 +96,6 @@ function parseQCodes(res: { data: any; status: number }, pageUrl: string) {
     }[]
   ).filter((val) => "pageprops" in val);
 
-  // console.log(
-  //   "TEST123",
-  //   pageUrl,
-  //   resData.map(({ title, pageprops }) => ({ title, pageprops }))
-  // );
-
   return resData.map((data) => ({
     title: data.title,
     code: data.pageprops.wikibase_item,
@@ -330,7 +324,6 @@ async function parseWikipediaCurrentEvents({ y, m, d }: DateObj) {
   const urlStr = `https://en.wikipedia.org/wiki/Portal:Current_events/${y}_${m}_${d}`;
   const response = await axios.get(urlStr);
   if (response.status !== 200) {
-    console.log("TEST123");
     return;
   }
   const event = htmlParser(response.data);
@@ -392,7 +385,6 @@ async function parseWikipediaCurrentEvents({ y, m, d }: DateObj) {
         const broaderTopicLinks = broaderTopicNodes
           .filter((v) => NodeIsHTMLElementGuard(v) && v.rawTagName === "a")
           .map((v) => getHrefContent(v as HTMLElement));
-        // console.log("TEST123-details", broaderTopicLinks);
 
         // now get details
         return {
@@ -404,7 +396,6 @@ async function parseWikipediaCurrentEvents({ y, m, d }: DateObj) {
         };
       }
       // this seems to be where the missing stories come from
-      console.log("TEST123-notelement", li.text);
       return null;
     });
     // if(events[events.length-1]==='ul'){

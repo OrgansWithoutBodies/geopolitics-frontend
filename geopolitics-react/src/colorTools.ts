@@ -122,7 +122,6 @@ export function interpolateHexStrings(
   if (tripleA === null || tripleB === null) {
     return "#FFFFFF";
   }
-  console.log("TEST123", tripleA, tripleB);
   const intermediatePoint = _interpolateColor(tripleA, tripleB);
   return r2h(intermediatePoint);
 }

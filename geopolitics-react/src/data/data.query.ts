@@ -1,6 +1,8 @@
 import { Query } from "@datorama/akita";
 
 import {
+  CountryNameLookup,
+  GeoJsonGeometryGeneric,
   HistoricalEvent,
   forceDirectedGraph,
   rawNetworkToAdjMat,
@@ -258,22 +260,51 @@ export class DataQuery extends Query<DataState> {
   private countriesQCodes = this.select("countriesQCodes");
   private existingCountries = this.rawCountries.pipe(
     map((countries) => {
-      return countries.filter((country) => country.stateEnd === undefined);
+      return countries.filter((country) => {
+        return country.stateEnd !== undefined;
+      });
     })
   );
 
-  public countries = combineLatest([
+  private rawWars = this.select("wars");
+  private countryOutlines = this.select("countriesOutlines");
+
+  // private wars;
+  public countries: Observable<
+    {
+      geometry: GeoJsonGeometryGeneric;
+      key: number;
+    }[]
+  > = combineLatest([this.existingCountries, this.countryOutlines]).pipe(
+    map(([countries, countryOutlines]) => {
+      return countries.map((country) => ({
+        // ...country,
+        key: Number.parseInt(country.item.value.replace("Q", "")),
+        // TODO no any
+        geometry: countryOutlines[
+          country.item.value
+        ] as any as GeoJsonGeometryGeneric,
+        // outline: countryOutlines[country.item.value],
+        // item: {
+        //   ...country.item,
+        //   valueString: countriesQCodes[country.item.value],
+        // },
+      }));
+    })
+  );
+  public countryToName: Observable<CountryNameLookup<number>> = combineLatest([
     this.existingCountries,
     this.countriesQCodes,
   ]).pipe(
     map(([countries, countriesQCodes]) => {
-      return countries.map((country) => ({
-        ...country,
-        item: {
-          ...country.item,
-          valueString: countriesQCodes[country.item.value],
-        },
-      }));
+      return Object.fromEntries(
+        countries.map((country) => {
+          return [
+            Number.parseInt(country.item.value.replace("Q", "")),
+            countriesQCodes[country.item.value],
+          ];
+        })
+      );
     })
   );
   public countriesInSameAlliance = [];

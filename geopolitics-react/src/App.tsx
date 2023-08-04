@@ -1,6 +1,7 @@
 import { ImperativePanelHandle } from "react-resizable-panels";
 
 import { useEffect, useRef, useState } from "react";
+import { WorldMap } from "react-konva-components/src";
 import { countryInfo } from "./countryData";
 import { useData } from "./useAkita";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
@@ -121,7 +122,10 @@ function App() {
   //   Europe: "cyan",
   //   Oceania: "red",
   // };
-  const [{ countries }] = useData(["countries"]);
+  const [{ countries, countryToName }] = useData([
+    "countryToName",
+    "countries",
+  ]);
   console.log("TEST123", countries);
   const [year, setYear] = useState(2000);
   // const mapCountryData = (
@@ -146,26 +150,18 @@ function App() {
         <div onClick={() => setYear(year - 1)}>-</div>
       </div>
       {/* <QuotedText /> */}
-      {/* <WorldMap<CountryCode>
-        container={{
-          sizePx: { x: 1024, y: 780 },
-          center: [0, 0],
-        }}
-        contents={{
-          countries: Object.entries(CountryFiles).map(([key, geometry]) => ({
-            key,
-            geometry,
-          })),
-
-
-          ],
-          countryToRegion,
-          countryToName,
-          regionColorMap,
-          // bilateralRelations,
-          countryHeartMap: Capitals,
-        }}
-      /> */}
+      {countryToName && countries && (
+        <WorldMap
+          container={{
+            sizePx: { x: 1024, y: 780 },
+            center: [0, 0],
+          }}
+          contents={{
+            countries,
+            countryToName,
+          }}
+        />
+      )}
     </>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
     //   <div className={styles.Container}>

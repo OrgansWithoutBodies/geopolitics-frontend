@@ -359,8 +359,6 @@ function buildQueryString<
   valueMaps: TValueMaps,
   includeSubclasses: boolean
 ): QueryString<TRefs, TKeys, TValueKey, TValueMaps> {
-  console.log("test123", keyList);
-
   const returnKeys = keyList
     .map((key) => `?${String(key)}`)
     .join(" ") as JoinStringArray<TKeys, " ?", "?">;
@@ -470,7 +468,6 @@ export async function buildQueryStringAndPost<
     includeSubclasses
   );
 
-  console.log("TEST123-str", builtStr);
   const result: RawResponseFromWD<TRefs, TKeys> = await axios.get(url, {
     params: { query: builtStr, format: "json" },
   });
