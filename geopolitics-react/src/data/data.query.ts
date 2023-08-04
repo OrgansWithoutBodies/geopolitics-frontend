@@ -4,7 +4,7 @@ import {
   HistoricalEvent,
   forceDirectedGraph,
   rawNetworkToAdjMat,
-} from "react-konva-components/src";
+} from "react-konva-components";
 import { Observable, combineLatest, map } from "rxjs";
 import type {
   AdjacencyMatrix,

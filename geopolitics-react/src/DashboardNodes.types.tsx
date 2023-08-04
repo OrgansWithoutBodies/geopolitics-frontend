@@ -2,7 +2,7 @@ import {
   HighlightSpecification,
   HistoricalEvent,
   WorldMapType,
-} from "react-konva-components/src";
+} from "react-konva-components";
 import { Observable } from "rxjs";
 import { HexString, ObjV2, ScreenSpace } from "type-library";
 import type {

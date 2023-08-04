@@ -5,7 +5,7 @@ import {
   NodesComponentProps,
   Timeline,
   WorldMap,
-} from "react-konva-components/src";
+} from "react-konva-components";
 import { AdaptPlugin } from "./DashboardNodes";
 import { IMapNode, INetworkNode, ITimelineNode } from "./DashboardNodes.types";
 

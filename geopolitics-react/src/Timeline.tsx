@@ -14,7 +14,7 @@ import {
   HistoricalEvent,
   PeriodOrSingleton,
   TimePeriod,
-} from "react-konva-components/src";
+} from "react-konva-components";
 import type { ObjV2 } from "type-library";
 import {
   TimelineContext,

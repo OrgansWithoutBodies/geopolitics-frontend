@@ -2,7 +2,7 @@
  * TODO - refactor this as a (jQuery?) plugin!
  **/
 
-import { HexTripleNumber } from "react-konva-components/src";
+import { HexTripleNumber } from "react-konva-components";
 import { HexString } from "type-library";
 
 // Converts a #ffffff hex string into an [r,g,b] array
