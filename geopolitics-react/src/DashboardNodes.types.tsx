@@ -14,11 +14,7 @@ import type {
   Tree,
 } from "type-library/src";
 import { HexString, ObjV2, ScreenSpace } from "type-library/src";
-import {
-  NetworkDashboardNode,
-  WorldMapDashboardNode,
-} from "./ConcreteDashboardNodes";
-import { AdaptPlugin } from "./DashboardNodes";
+import { NetworkDashboardNode } from "./ConcreteDashboardNodes";
 import type { PeriodOrSingleton } from "./types";
 
 export type TransformNodeType = "";
@@ -35,7 +31,7 @@ type FlavorShape = {
   NodeColorList: { shape: HexString[] };
   layoutMethod: { shape: "forceDirectedGraph" | "circular" | "tree" };
   Color: { shape: HexString };
-  MapGeometry: { shape: WorldMapType<any, any>[] };
+  MapGeometry: { shape: WorldMapType<any>[] };
   IdList: { shape: number[] };
   OrderedEvents: {
     shape: HistoricalEvent<PeriodOrSingleton<TimeSpace>, any>[];
@@ -184,24 +180,24 @@ type BreakdownFlavorMap<
   TMap extends Record<string, { flavor: Flavor }>,
   TKeys extends keyof TMap = keyof TMap
 > = Record<TKeys, FlavorShape[TMap[TKeys]["flavor"]]>;
-export type IMapNode<TEntityKey extends number> = IGenericDashboardNode<
-  string,
-  "Map",
-  {
-    entities: {
-      flavor: "MapGeometry";
-      map: WorldMapType<TEntityKey, any>;
-    };
-    fills: {
-      flavor: "NodeColorList";
-      highlights: HighlightSpecification<TEntityKey>[];
-    };
-  },
-  // TODO subflavor? flavor variety? (for concrete generics)
-  { selectedEntities: { flavor: "IdList"; selected: TEntityKey[] } },
-  null,
-  typeof WorldMapDashboardNode
->;
+// export type IMapNode<TEntityKey extends number> = IGenericDashboardNode<
+//   string,
+//   "Map",
+//   {
+//     entities: {
+//       flavor: "MapGeometry";
+//       map: WorldMapType<TEntityKey>;
+//     };
+//     fills: {
+//       flavor: "NodeColorList";
+//       highlights: HighlightSpecification<TEntityKey>[];
+//     };
+//   },
+//   // TODO subflavor? flavor variety? (for concrete generics)
+//   { selectedEntities: { flavor: "IdList"; selected: TEntityKey[] } },
+//   null,
+//   typeof WorldMapDashboardNode
+// >;
 export type ITimelineNode<TEntityKey extends number> = IGenericDashboardNode<
   string,
   "Timeline",
@@ -221,7 +217,7 @@ export type ITimelineNode<TEntityKey extends number> = IGenericDashboardNode<
 >;
 // TODO this is effectively a lookup now so adding a manual | is sorta redundant
 type AllowedNodeTypeLookup = {
-  Map: AdaptPlugin<IMapNode<number>>;
+  // Map: AdaptPlugin<IMapNode<number>>;
   Network: any;
   Timeline: any;
   Share: any;
@@ -259,8 +255,8 @@ export type INetworkNode = IGenericDashboardNode<
   null,
   typeof NetworkDashboardNode
 >;
-export type DashboardNodes<TMapEntityKey extends number = number> =
-  | IMapNode<TMapEntityKey>
+export type DashboardNodes =
+  // export type DashboardNodes<TMapEntityKey extends number = number> =
+  // | IMapNode<TMapEntityKey>
   // | INetworkNode<TNetworkEntityKey>
-  | INetworkNode
-  | ITimelineNode<number>;
+  INetworkNode | ITimelineNode<number>;

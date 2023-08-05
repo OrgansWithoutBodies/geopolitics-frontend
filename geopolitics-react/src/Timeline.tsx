@@ -23,6 +23,7 @@ import {
 } from "./TimelineContext";
 import { dataService } from "./data/data.service";
 import { orderedNumbers } from "./orderedNumbers";
+import { offsetDate } from "./timeTools";
 import type {
   EventID,
   RenderableEvent,
@@ -132,7 +133,10 @@ export function TimelineEvents({
   events: RenderableEvent[];
   onMouseOver: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
   onMouseLeave: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
-  onEventClick: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
+  onEventClick: (
+    id: EventID,
+    event: KonvaEventObject<MouseEvent | Event>
+  ) => void;
   // onMouseMove: (id: EventID, event: KonvaEventObject<MouseEvent>) => void;
 }): JSX.Element {
   const { convertToKonvaCoord, divisionLen } = useTimelineContext();
@@ -141,6 +145,7 @@ export function TimelineEvents({
       {events.map((event) => {
         return (
           <Circle
+            onTap={(mouseEvent) => onEventClick(event.id, mouseEvent)}
             onClick={(mouseEvent) => onEventClick(event.id, mouseEvent)}
             onMouseOver={(mouseEvent) => onMouseOver(event.id, mouseEvent)}
             onMouseLeave={(mouseEvent) => onMouseLeave(event.id, mouseEvent)}
@@ -166,10 +171,8 @@ type Tooltip = {
 
 export function TimelineTooltip({
   tooltip: tooltip,
-  offsetDate,
 }: {
   tooltip: Tooltip | null;
-  offsetDate: (eventTimeInMS: TimeSpace) => TimeSpace;
 }): JSX.Element {
   const titlePosY = 0;
   const tooltipHeight = 100;
@@ -219,9 +222,9 @@ export function TimelineTooltip({
               alpha={0.75}
             />
             <Text
-              text={offsetDate(tooltip.dates)}
+              text={tooltip.dates}
               y={titlePosY + 40}
-              fontSize={10}
+              fontSize={20}
               padding={10}
               fontFamily="Calibri"
               textFill="white"
@@ -238,9 +241,9 @@ export function TimelineTooltip({
 const formatDates = ({ eventTime }: HistoricalEvent): string => {
   const isSegment = periodIsSegmentGuard(eventTime);
   if (isSegment) {
-    return `${eventTime.start} - ${eventTime.end}`;
+    return `${offsetDate(eventTime.start)} - ${offsetDate(eventTime.end)}`;
   }
-  return `${eventTime}`;
+  return `${offsetDate(eventTime)}`;
 };
 
 // function timelineContextProvider = Contextprop
@@ -249,21 +252,18 @@ export function Timeline({
   events,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   onEventClick = () => {},
-  yearFactor = 1,
-  yearOffset = 0,
-}: {
+}: // yearFactor = 1,
+// yearOffset = 0,
+{
   stageSize: ObjV2;
   events: RenderableEvent[];
-  yearFactor?: number;
-  yearOffset?: number;
+  // yearFactor?: number;
+  // yearOffset?: number;
   onEventClick?: (event: EventID) => void;
 }): JSX.Element {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   // const sortedEvents = events.sort((a, b) =>
 
-  function offsetDate(latestEventEnd: TimeSpace): TimeSpace {
-    return Math.round(latestEventEnd * yearFactor + yearOffset) as TimeSpace;
-  }
   //   a.eventTime > b.eventTime ? -1 : 1
   // );
   // WE ASSUME SORTED - TODO encode in type
@@ -275,7 +275,11 @@ export function Timeline({
       <Stage
         width={stageSize.x}
         height={stageSize.y}
-        style={{ backgroundColor: "white" }}
+        style={{
+          backgroundColor: "white",
+          width: stageSize.x,
+          height: stageSize.y,
+        }}
       >
         <Layer x={TimelineVariables.timelineLeftPadding}>
           {latestEventEnd && earliestEventStart && (
@@ -301,7 +305,6 @@ export function Timeline({
                     desc: hitEvent.eventInfo,
                     title: hitEvent.eventName,
                   });
-                  console.log("TEST123", hitEvent);
                 }
               }}
               onEventClick={(
@@ -319,7 +322,7 @@ export function Timeline({
               // }}
             />
           )}
-          <TimelineTooltip tooltip={tooltip} offsetDate={offsetDate} />
+          <TimelineTooltip tooltip={tooltip} />
         </Layer>
       </Stage>
     </TimelineContext.Provider>

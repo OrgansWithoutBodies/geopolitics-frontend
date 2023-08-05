@@ -125,3 +125,15 @@ export function interpolateHexStrings(
   const intermediatePoint = _interpolateColor(tripleA, tripleB);
   return r2h(intermediatePoint);
 }
+
+export const getRandomColor = (): HexString => {
+  // return "#FFFFFF";
+
+  const channelSize = 16;
+  const charCode = new Array(6)
+    .fill(0)
+    .map(() => Math.round(Math.random() * channelSize).toString(16))
+    .reduce((prev, curr) => prev + curr);
+
+  return `#${charCode}`;
+};

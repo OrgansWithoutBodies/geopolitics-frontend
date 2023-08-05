@@ -55,7 +55,6 @@ export function BuildNetwork<
   >[],
   edges: DashboardNodeConnection<any>[]
 ) {
-  console.log(nodes, edges);
   // need to start from the data sources?
   /**
    * start at one outermost data node (shouldnt matter which)

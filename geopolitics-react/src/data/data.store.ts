@@ -1,41 +1,37 @@
 import { Store } from "@datorama/akita";
 import { HistoricalEvent, NetworkNode } from "react-konva-components/src";
-import { NetworkEdge } from "type-library/src";
+import { BrandedNumber, KonvaSpace } from "type-library";
+import { NetworkNodeRenderProps } from "type-library/src";
 import { CountryOutlines } from "../../dataPrep/out/countries";
 import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
 import { QCodes as WDCountryQCodes } from "../../dataPrep/out/countries.qcodes.data";
 import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
 import { QCodes as WDInternationalOrgQCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
+import { WDType as WDTradeBlocs } from "../../dataPrep/out/tradeBlocs.data";
+import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/tradeBlocs.qcodes.data";
 import { WDType as WDWar } from "../../dataPrep/out/wars.data";
 import { QCodes as WDWarQCodes } from "../../dataPrep/out/wars.qcodes.data";
-import type { EventID, NodeID, TimeSpace } from "../types";
+import type { NodeID, TimeSpace } from "../types";
 
-type NodeLookup = Record<NodeID, NetworkNode>;
-const nodesLookup: NodeLookup = {
-  [0 as NodeID]: {
-    id: 0 as NodeID,
-  },
-  [1 as NodeID]: {
-    id: 1 as NodeID,
-  },
-};
+export type NodeLookup = Record<NodeID, NetworkNode>;
+export type QCode<TNumber extends number = number> = `Q${TNumber}`;
 
-const edges: NetworkEdge[] = [
-  {
-    target: 0 as NodeID,
-    origin: 1 as NodeID,
-  },
-];
+export type CountryID = BrandedNumber<"CountryID">;
 export interface DataState {
   events: HistoricalEvent[];
   initialDateFilter: TimeSpace | null;
   finalDateFilter: TimeSpace | null;
-  networkNodes: NodeLookup;
-  networkEdges: NetworkEdge[];
   internationalOrgs: typeof WDInternationalOrg;
+  selectedCountry: CountryID | null;
+  selectedNetworkNode: NodeID | null;
+  filterYears: Record<"start" | "end", number | null>;
   internationalOrgsQCodes: typeof WDInternationalOrgQCodes;
   wars: typeof WDWar;
   warsQCodes: typeof WDWarQCodes;
+  networkNodeRenderProps: Record<NodeID, NetworkNodeRenderProps>;
+  tradeBlocs: typeof WDTradeBlocs;
+  tradeBlocsQCodes: typeof WDTradeBlocsQCodes;
+
   countries: typeof WDCountry;
   countriesQCodes: typeof WDCountryQCodes;
   countriesOutlines: typeof CountryOutlines;
@@ -44,99 +40,33 @@ export interface DataState {
 // TODO persist
 export function createInitialState(): DataState {
   return {
-    networkNodes: nodesLookup,
-    networkEdges: edges,
+    filterYears: { start: null, end: null },
+    networkNodeRenderProps: Object.fromEntries(
+      [
+        ...new Set(WDTradeBlocs.map((bloc) => bloc.memberState.value).flat()),
+      ].map((country) => [
+        numericalQCode({ item: { value: country } }) as NodeID,
+        {
+          color: "#FF0000",
+          position: {
+            x: (Math.random() * 400) as KonvaSpace,
+            y: (Math.random() * 700) as KonvaSpace,
+          },
+        },
+      ])
+    ),
+    selectedNetworkNode: null,
+    selectedCountry: null,
     internationalOrgs: WDInternationalOrg,
     internationalOrgsQCodes: WDInternationalOrgQCodes,
     wars: WDWar,
     warsQCodes: WDWarQCodes,
     countries: WDCountry,
-    countriesOutlines: CountryOutlines,
     countriesQCodes: WDCountryQCodes,
-    events: [
-      {
-        id: 1 as EventID,
-        eventTime: 1569 as TimeSpace,
-        eventName: "Union of Lublin",
-        eventInfo: "https://en.wikipedia.org/wiki/Union_of_Lublin",
-      },
-      {
-        id: 2 as EventID,
-        eventTime: { start: 1648 as TimeSpace, end: 1657 as TimeSpace },
-        eventName: "Khmelnytsky Uprising",
-        eventInfo: "https://en.wikipedia.org/wiki/Khmelnytsky_Uprising",
-      },
-      {
-        id: 3123 as EventID,
-        eventTime: 1772 as TimeSpace,
-        eventName: "First Partition of Poland",
-        eventInfo: "https://en.wikipedia.org/wiki/First_Partition_of_Poland",
-      },
-      {
-        id: 3124 as EventID,
-        eventTime: 1793 as TimeSpace,
-        eventName: "Second Partition of Poland",
-        eventInfo: "https://en.wikipedia.org/wiki/Second_Partition_of_Poland",
-      },
-      {
-        id: 3125 as EventID,
-        eventTime: 1795 as TimeSpace,
-        eventName: "Third Partition of Poland",
-        eventInfo: "https://en.wikipedia.org/wiki/Third_Partition_of_Poland",
-      },
-      {
-        id: 4 as EventID,
-        eventTime: 1253 as TimeSpace,
-        eventName: "Coronation of Mindaugas",
-        eventInfo: "https://en.wikipedia.org/wiki/Mindaugas",
-      },
-      {
-        id: 1231 as EventID,
-        eventTime: { start: 1409 as TimeSpace, end: 1411 as TimeSpace },
-        eventName: "Polish–Lithuanian–Teutonic War",
-        eventInfo:
-          "https://en.wikipedia.org/wiki/Polish%E2%80%93Lithuanian%E2%80%93Teutonic_War",
-      },
-      {
-        id: 1238 as EventID,
-        eventTime: { start: 1654 as TimeSpace, end: 1667 as TimeSpace },
-        eventName: "Russo-Polish War/First Northern War",
-        eventInfo:
-          "https://en.wikipedia.org/wiki/Russo-Polish_War_(1654%E2%80%931667)",
-      },
-      {
-        id: 1237 as EventID,
-        eventTime: { start: 1830 as TimeSpace, end: 1831 as TimeSpace },
-        eventName: "November Insurrection",
-        eventInfo: "https://en.wikipedia.org/wiki/November_Uprising",
-      },
-      {
-        id: 1239 as EventID,
-        eventTime: { start: 1700 as TimeSpace, end: 1721 as TimeSpace },
-        eventName: "Great Northern War",
-        eventInfo: "https://en.wikipedia.org/wiki/Great_Northern_War",
-      },
-      {
-        id: 5 as EventID,
-        eventTime: 1918 as TimeSpace,
-        eventName: "Establishment of First Republic",
-        eventInfo: "https://en.wikipedia.org/wiki/First_Seimas_of_Lithuania",
-      },
-      {
-        id: 6 as EventID,
-        eventTime: { start: 1940 as TimeSpace, end: 1941 as TimeSpace },
-        eventName: "First Period of LTSR",
-        eventInfo:
-          "https://en.wikipedia.org/wiki/Lithuanian_Soviet_Socialist_Republic",
-      },
-      {
-        id: 7 as EventID,
-        eventTime: { start: 1944 as TimeSpace, end: 1990 as TimeSpace },
-        eventName: "Second Period of LTSR",
-        eventInfo:
-          "https://en.wikipedia.org/wiki/Lithuanian_Soviet_Socialist_Republic",
-      },
-    ],
+    countriesOutlines: CountryOutlines,
+    tradeBlocs: WDTradeBlocs,
+    tradeBlocsQCodes: WDTradeBlocsQCodes,
+    events: [],
     initialDateFilter: null,
     finalDateFilter: null,
   };
@@ -150,3 +80,8 @@ export class DataStore extends Store<DataState> {
 }
 
 export const dataStore = new DataStore();
+export function numericalQCode<TNum extends number>(country: {
+  item: { value: `Q${TNum}` };
+}): TNum {
+  return Number.parseInt(country.item.value.replace("Q", "")) as TNum;
+}

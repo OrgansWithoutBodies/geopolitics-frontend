@@ -4,18 +4,20 @@ import {
   CountryNameLookup,
   GeoJsonGeometryGeneric,
   HistoricalEvent,
-  forceDirectedGraph,
-  rawNetworkToAdjMat,
+  adjMatToRawNetwork,
+  objAdjToAdj,
 } from "react-konva-components/src";
 import { Observable, combineLatest, map } from "rxjs";
+import { NetworkNode, RawNetwork, RenderableNetworkEdge } from "type-library";
 import type {
-  AdjacencyMatrix,
   HexString,
-  RawNetwork,
+  ObjectAdjacencyMatrix,
   RenderableNetworkNode,
 } from "type-library/src";
 import { periodIsSegmentGuard } from "../Timeline";
+import { offsetDate } from "../timeTools";
 import type {
+  BrandedNumber,
   EventID,
   LineSegment,
   PeriodOrSingleton,
@@ -24,7 +26,16 @@ import type {
   TimeSpace,
   TimelineSpace,
 } from "../types";
-import { DataState, DataStore, dataStore } from "./data.store";
+import {
+  CountryID,
+  DataState,
+  DataStore,
+  QCode,
+  dataStore,
+  numericalQCode,
+} from "./data.store";
+
+type BlocID = BrandedNumber<"BlocID">;
 
 const getRandomColor = (): HexString => {
   // return "#FFFFFF";
@@ -104,43 +115,14 @@ export class DataQuery extends Query<DataState> {
     super(store);
   }
 
+  private filterYears = this.select("filterYears");
+  private networkNodeRenderProps = this.select("networkNodeRenderProps");
   private unfilteredEvents = this.select("events");
 
-  public networkNodes = this.select("networkNodes");
-  public networkNodesArray = this.networkNodes.pipe(
-    map((nodes) => Object.values(nodes))
-  );
-  public networkEdges = this.select("networkEdges");
-
-  public rawNetwork: Observable<RawNetwork> = combineLatest([
-    this.networkNodesArray,
-    this.networkEdges,
-  ]).pipe(
-    map(([nodes, edges]) => {
-      return { nodes, edges };
-    })
-  );
-
-  public adjMat: Observable<AdjacencyMatrix> = this.rawNetwork.pipe(
-    map((network) => rawNetworkToAdjMat(network))
-  );
-
-  public renderableNetworkNodes: Observable<RenderableNetworkNode[]> =
-    combineLatest([this.networkNodesArray, this.adjMat]).pipe(
-      map(([nodes, adjMat]) => {
-        //
-        const placements = forceDirectedGraph({ G: adjMat, H: 100 });
-        return nodes.map((node, ii) => {
-          return {
-            ...node,
-            renderedProps: {
-              position: { ...placements[ii] },
-              color: getRandomColor(),
-            },
-          };
-        });
-      })
-    );
+  // public networkNodes = this.select("networkNodes");
+  // public adjMat: Observable<AdjacencyMatrix> = this.rawNetwork.pipe(
+  //   map((network) => rawNetworkToAdjMat(network))
+  // );
 
   // public renderableEdges: Observable<RenderableNetworkEdge[]> = combineLatest([
   //   this.renderableNetworkNodes,
@@ -267,19 +249,20 @@ export class DataQuery extends Query<DataState> {
     })
   );
 
-  private rawWars = this.select("wars");
+  // private rawWars = this.select("wars");
+  // public tradeBlocs = this.select("tradeBloc");
   private countryOutlines = this.select("countriesOutlines");
 
   // private wars;
   public countries: Observable<
     {
       geometry: GeoJsonGeometryGeneric;
-      key: number;
+      key: CountryID;
     }[]
   > = combineLatest([this.existingCountries, this.countryOutlines]).pipe(
     map(([countries, countryOutlines]) => {
       return countries.map((country) => ({
-        key: numericalQCode(country),
+        key: numericalQCode(country) as CountryID,
         // TODO no any
         geometry: countryOutlines[
           country.item.value
@@ -287,33 +270,79 @@ export class DataQuery extends Query<DataState> {
       }));
     })
   );
-  public selectedCountry: Observable<CountryID> =
+  public selectedCountry: Observable<CountryID | null> =
     this.select("selectedCountry");
   // 0800-01-01T00:00:00Z
-  public countryStarts: Observable<RenderableEvent[]> = combineLatest([
+  public countriesSortedByStart: typeof this.existingCountries = combineLatest([
     this.existingCountries,
-    this.countriesQCodes,
-    this.selectedCountry,
   ]).pipe(
-    map(([countries, qCodes, selectedCountry]) => {
-      const sortedCountries = [...countries].sort((a, b) =>
+    map(([countries]) => {
+      return [...countries].sort((a, b) =>
         new Date(a.stateStart.value) > new Date(b.stateStart.value) ? 1 : -1
       );
+    })
+  );
+  public countryStartEndpoints: Observable<{
+    start: TimeSpace;
+    end: TimeSpace;
+  }> = combineLatest([this.countriesSortedByStart]).pipe(
+    map(([sortedCountries]) => {
       const earliestEvent = new Date(
         sortedCountries[0].stateStart.value
       ).getTime() as TimeSpace;
       const latestEvent = new Date(
         sortedCountries[sortedCountries.length - 1].stateStart.value
       ).getTime() as TimeSpace;
-      return sortedCountries.map((country) => {
+
+      return { start: earliestEvent, end: latestEvent };
+    })
+  );
+
+  public filterYearsNullSafe: Observable<{
+    start: TimeSpace;
+    end: TimeSpace;
+  }> = combineLatest([this.countryStartEndpoints, this.filterYears]).pipe(
+    map(([countryStartEndpoints, filterYears]) => {
+      const safeStart = (
+        filterYears.start !== null
+          ? filterYears.start
+          : countryStartEndpoints.start
+      ) as TimeSpace;
+      const safeEnd = (
+        filterYears.end !== null ? filterYears.end : countryStartEndpoints.end
+      ) as TimeSpace;
+      return { start: safeStart, end: safeEnd };
+    })
+  );
+
+  public filterYearsRenderReady: Observable<{ start: number; end: number }> =
+    this.filterYearsNullSafe.pipe(
+      map(({ start, end }) => {
+        return { start: offsetDate(start), end: offsetDate(end) };
+      })
+    );
+
+  public countryStarts: Observable<RenderableEvent[]> = combineLatest([
+    this.countriesSortedByStart,
+    this.filterYearsNullSafe,
+    this.countriesQCodes,
+    this.selectedCountry,
+  ]).pipe(
+    map(([countries, filterYearsNullSafe, qCodes, selectedCountry]) => {
+      const { start, end } = filterYearsNullSafe;
+      const sortedCountries = [...countries].sort((a, b) =>
+        new Date(a.stateStart.value) > new Date(b.stateStart.value) ? 1 : -1
+      );
+      const filteredCountries = sortedCountries.filter((country) => {
+        const eventTime = new Date(
+          country.stateStart.value
+        ).getTime() as TimeSpace;
+        return eventTime >= start && eventTime <= end;
+      });
+      return filteredCountries.map((country) => {
         const startDate = country.stateStart.value;
-        // const [date, _time] = startDate.split("T");
-        // const [Y, M, D] = date.split("-");
         const eventTime = new Date(startDate).getTime() as TimeSpace;
-        const positioner = DataQuery.buildEventPositioner(
-          earliestEvent,
-          latestEvent
-        );
+        const positioner = DataQuery.buildEventPositioner(start, end);
         const genericProps = {
           id: numericalQCode(country) as EventID,
           eventName: `Beginning of ${qCodes[country.item.value]}`,
@@ -388,8 +417,148 @@ export class DataQuery extends Query<DataState> {
       });
     })
   );
+
+  // NETWORK STUFF
+
+  public tradeBlocs = this.select("tradeBlocs");
+  public blocMemberships: Observable<
+    Record<QCode<BlocID>, QCode<CountryID>[]>
+  > = this.tradeBlocs.pipe(
+    map((blocs) => {
+      const uniqueBlocs = [
+        ...new Set(blocs.map((entry) => [entry.item.value, []])),
+      ];
+      const blocMemberships: Record<
+        QCode<BlocID>,
+        QCode<CountryID>[]
+      > = Object.fromEntries(uniqueBlocs);
+      blocs.forEach((bloc) => {
+        blocMemberships[bloc.item.value as QCode<BlocID>].push(
+          bloc.memberState.value as QCode<CountryID>
+        );
+      });
+      return blocMemberships;
+    })
+  );
+  public countriesInSameTradeBloc: Observable<
+    ObjectAdjacencyMatrix<CountryID, 0 | 1>
+  > = combineLatest([this.blocMemberships]).pipe(
+    map(([blocMemberships]) => {
+      const groupedBlocs = Object.values(blocMemberships);
+      const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
+      // const countryIndexFromQCodeLookup = Object.fromEntries(
+      //   uniqueEntitiesInTradeBlocs.map((entity, ii) => {
+      //     return [entity, ii] as [QCode<CountryID>, number];
+      //   })
+      // );
+      const QCodeFromCountryIndexLookup = Object.fromEntries(
+        uniqueEntitiesInTradeBlocs.map((entity, ii) => {
+          return [ii, entity] as [number, QCode<CountryID>];
+        })
+      );
+      const tradeBlocMatrix: ObjectAdjacencyMatrix<CountryID, 0 | 1> =
+        Object.fromEntries(
+          new Array(uniqueEntitiesInTradeBlocs.length).fill(0).map((_, ii) => [
+            numericalQCode({
+              item: { value: QCodeFromCountryIndexLookup[ii] },
+            }),
+            Object.fromEntries(
+              new Array(uniqueEntitiesInTradeBlocs.length)
+                .fill(0)
+                .map((_, jj) => [
+                  numericalQCode({
+                    item: { value: QCodeFromCountryIndexLookup[jj] },
+                  }),
+                  0,
+                ])
+            ),
+          ])
+        );
+      groupedBlocs.forEach((entryList) => {
+        entryList.forEach((entry, ii) => {
+          entryList.forEach((otherEntry, jj) => {
+            if (jj > ii) {
+              tradeBlocMatrix[
+                numericalQCode({ item: { value: entry } }) as CountryID
+              ][
+                numericalQCode({ item: { value: otherEntry } }) as CountryID
+              ] = 1;
+            }
+          });
+        });
+      });
+      return tradeBlocMatrix;
+    })
+  );
+  public selectedNetworkNode = this.select("selectedNetworkNode");
+
+  // when two participants show up within the same event, they have an arrow pointing between them
+  // public eventParticipantsAsNetwork: Observable<RawNetwork<{ id: NodeID }>> =
+  //   this.countriesInSameTradeBloc.pipe(
+  //     map((adjMat) => adjMatToRawNetwork<NodeID>(adjMat))
+  //   );
+  // `QCode${NodeID}`
+
+  // public eventAdjMat: Observable<AdjacencyMatrix> =
+  //   this.eventParticipantsAsNetwork.pipe(
+  //     map((network) => rawNetworkToAdjMat(network)),
+  //     startWith([])
+  //   );
+
+  // public selectedNetworkNodeEventInfo: Observable<InfoPanelDateElement | null> =
+  //   combineLatest([this.selectedNetworkNode, this.agents]).pipe(
+  //     map(([val, agents]) => {
+  //       if (val === null) {
+  //         return null;
+  //       }
+  //       return { title: "Network", desc: `${agents[val].name}` };
+  //     })
+  //   );
+  public eventParticipantsAsNetwork: Observable<RawNetwork> =
+    this.countriesInSameTradeBloc.pipe(
+      map((objAdjMat) => adjMatToRawNetwork(objAdjMat))
+    );
+  public networkNodesArray: Observable<NetworkNode[]> =
+    this.eventParticipantsAsNetwork.pipe(
+      map(({ nodes }) => {
+        return nodes;
+      })
+    );
+
+  public renderableEventNetworkNodes: Observable<RenderableNetworkNode[]> =
+    combineLatest([this.networkNodesArray, this.networkNodeRenderProps]).pipe(
+      map(([nodes, networkNodeRenderProps]) => {
+        return nodes.map((node) => ({
+          ...node,
+          renderedProps: networkNodeRenderProps[node.id],
+        }));
+      })
+    );
+
+  public renderableEventEdges: Observable<RenderableNetworkEdge[]> =
+    combineLatest([
+      this.renderableEventNetworkNodes,
+      this.eventParticipantsAsNetwork,
+    ]).pipe(
+      map(([nodes, { edges }]) => {
+        return edges.map((edge) => {
+          return {
+            ...edge,
+            renderedProps: {
+              position: {
+                origin: nodes.find(({ id }) => id === edge.origin)!
+                  .renderedProps.position,
+                target: nodes.find(({ id }) => id === edge.target)!
+                  .renderedProps.position,
+              },
+            },
+          };
+        });
+      })
+    );
+
+  public adjMat = this.countriesInSameTradeBloc.pipe(
+    map((objAdj) => objAdjToAdj(objAdj))
+  );
 }
 export const dataQuery = new DataQuery(dataStore);
-function numericalQCode(country: { item: { value: `Q${number}` } }): number {
-  return Number.parseInt(country.item.value.replace("Q", ""));
-}

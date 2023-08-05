@@ -4,10 +4,9 @@ import {
   NetworkNodeTemplate,
   NodesComponentProps,
   Timeline,
-  WorldMap,
 } from "react-konva-components/src";
 import { AdaptPlugin } from "./DashboardNodes";
-import { IMapNode, INetworkNode, ITimelineNode } from "./DashboardNodes.types";
+import { INetworkNode, ITimelineNode } from "./DashboardNodes.types";
 
 export function NetworkDashboardNode({
   inputs: {
@@ -48,35 +47,37 @@ export function NetworkDashboardNode({
   );
 }
 
-export function WorldMapDashboardNode({
-  inputs: {
-    entities: { map },
-    fills: { highlights },
-  },
-  outputs: { selectedEntities },
-  dashboardNodeProps: { stageSize },
-}: AdaptPlugin<IMapNode<number>>): JSX.Element {
-  // TODO
-  console.log(selectedEntities);
-  return (
-    <WorldMap
-      // TODO select/onSelect
-      container={{
-        sizePx: stageSize,
-        center: [0, 0],
-      }}
-      contents={{
-        // TODO
-        countries: map as any,
-        countryToRegion: {},
-        countryToName: {},
-        // countryLines: undefined,
-        // countryHeartMap: undefined,
-        highlights,
-      }}
-    />
-  );
-}
+// export function WorldMapDashboardNode({
+//   inputs: {
+//     entities: { map },
+//     fills: { highlights },
+//     onClick,
+//   },
+//   outputs: { selectedEntities },
+//   dashboardNodeProps: { stageSize },
+// }: AdaptPlugin<IMapNode<number>>): JSX.Element {
+//   // TODO
+//   console.log(selectedEntities);
+//   return (
+//     <WorldMap
+//       // TODO select/onSelect
+//       container={{
+//         sizePx: stageSize,
+//         center: [0, 0],
+//       }}
+//       contents={{
+//         onClick,
+//         // TODO
+//         countries: map as any,
+//         // countryToRegion: {},
+//         countryToName: {},
+//         // countryLines: undefined,
+//         // countryHeartMap: undefined,
+//         highlights,
+//       }}
+//     />
+//   );
+// }
 export function TimelineDashboardNode({
   inputs: {
     entities: { events },

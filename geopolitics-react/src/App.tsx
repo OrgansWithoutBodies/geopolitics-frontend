@@ -1,11 +1,18 @@
 import { ImperativePanelHandle } from "react-resizable-panels";
 
 import { useEffect, useRef, useState } from "react";
-import { WorldMap } from "react-konva-components/src";
+import {
+  Network,
+  NetworkNodeTemplate,
+  NodesComponentProps,
+  WorldMap,
+} from "react-konva-components/src";
+import { KonvaSpace, NodeID, TimeSpace } from "type-library";
 import { Timeline } from "./Timeline";
 import { countryInfo } from "./countryData";
 import { dataService } from "./data/data.service";
 import { CountryID } from "./data/data.store";
+import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
@@ -113,65 +120,226 @@ function App() {
   //   Europe: "cyan",
   //   Oceania: "red",
   // };
-  const [{ countryStarts, countries, countryToName, selectedCountry }] =
-    useData(["countryToName", "countryStarts", "countries", "selectedCountry"]);
-  const [year, setYear] = useState(2000);
-  const MS_IN_S = 1000;
-  const S_IN_MIN = 60;
-  const MIN_IN_HOUR = 60;
-  const HOUR_IN_DAY = 24;
-  const DAY_IN_YEAR = 365;
+  const [
+    {
+      countryStarts,
+      countries,
+      countryToName,
+      selectedCountry,
+      filterYearsNullSafe,
+      filterYearsRenderReady,
+      adjMat: adjMat,
+      renderableEventNetworkNodes: nodes,
+      renderableEventEdges: edges,
+      eventParticipantsAsNetwork: rawNetwork,
+      // selectedNetworkNode,
+      countriesInSameTradeBloc,
+    },
+  ] = useData([
+    "countryToName",
+    "countryStarts",
+    "countries",
+    "eventParticipantsAsNetwork",
+    "selectedCountry",
+    "filterYearsNullSafe",
+    "filterYearsRenderReady",
+    "renderableEventEdges",
+    "adjMat",
+    "countriesInSameTradeBloc",
+    "renderableEventNetworkNodes",
+    "selectedNetworkNode",
+  ]);
+  const NodeTemplate: NodesComponentProps["NodeTemplate"] = ({ node }) => (
+    <NetworkNodeTemplate
+      onNodeMove={(updatingNode, event) =>
+        dataService.moveNode(updatingNode, {
+          x: event.target.x() as KonvaSpace,
+          y: event.target.y() as KonvaSpace,
+        })
+      }
+      highlightedNode={selectedCountry as any as NodeID | null}
+      onMouseOver={(id) => {
+        dataService.setHoveredNetworkNode(id);
+      }}
+      onSelectNode={(id) => {
+        dataService.setSelectedCountry(id as any as CountryID);
+      }}
+      onMouseLeave={() => {
+        setHighlightedNode(null);
+      }}
+      node={node}
+    />
+  );
+
+  // const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const [highlightedNode, setHighlightedNode] = useState<NodeID | null>(null);
+
+  useEffect(() => {
+    if (adjMat) {
+      dataService.setNodesFromAdjMat(adjMat);
+    }
+  }, []);
+  const COLUMN_1_WIDTH = 512;
+  const COLUMN_2_WIDTH = 512;
+  const MAP_HEIGHT = 580;
+  const TIMELINE_HEIGHT = 180;
   return (
-    <>
-      <div>
-        <div onClick={() => setYear(year + 1)}>+</div>
-        <div onClick={() => setYear(year - 1)}>-</div>
+    <div>
+      <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>
+        <div>DEMO APP</div>
+        <p>
+          Shows countries (outlines from wikidata), shows timeline with all
+          state founding events.
+        </p>
+        <p>
+          If an entity is selected in one, it will also become selected in the
+          other
+        </p>
+        <p>Change Start Year & End Year to filter timeline </p>
+        <p>
+          Timeline shows beginning of state, Network shows membership in same
+          Trade Bloc{" "}
+        </p>
       </div>
-      {/* <QuotedText /> */}
-      {countryToName && countries && (
-        <WorldMap
-          container={{
-            sizePx: { x: 1024, y: 780 },
-            center: [0, 0],
-          }}
-          contents={{
-            countries,
-            countryToName,
-            countryLines: [],
-            onClick: (id) => dataService.setSelectedCountry(id),
-            highlights: [
-              {
-                highlightColor: "#FFFF00",
-                highlightedCountries:
-                  selectedCountry !== null ? [selectedCountry] : [],
-              },
-            ],
-          }}
-        />
+      {filterYearsRenderReady !== undefined && (
+        <>
+          <div>
+            <p>START YEAR</p>
+            <button
+              onClick={() =>
+                dataService.setFilterEndpoint(
+                  "start",
+                  filterYearsNullSafe.start + 1 * MS_IN_YEAR
+                )
+              }
+            >
+              +
+            </button>
+            <input
+              value={filterYearsRenderReady.start}
+              onChange={(val) => {
+                dataService.setFilterEndpoint(
+                  "start",
+                  unoffsetDate(Number.parseInt(val.target.value) as TimeSpace)
+                );
+              }}
+            />
+            <button
+              onClick={() =>
+                dataService.setFilterEndpoint(
+                  "start",
+                  filterYearsNullSafe.start - 1 * MS_IN_YEAR
+                )
+              }
+            >
+              -
+            </button>
+          </div>
+          <div>
+            <p>END YEAR</p>
+            <button
+              onClick={() =>
+                dataService.setFilterEndpoint(
+                  "end",
+                  filterYearsNullSafe.end + 1 * MS_IN_YEAR
+                )
+              }
+            >
+              +
+            </button>
+            <input
+              value={filterYearsRenderReady.end}
+              onChange={(val) => {
+                dataService.setFilterEndpoint(
+                  "end",
+                  unoffsetDate(Number.parseInt(val.target.value) as TimeSpace)
+                );
+              }}
+            />
+            <button
+              onClick={() =>
+                dataService.setFilterEndpoint(
+                  "end",
+                  filterYearsNullSafe.end - 1 * MS_IN_YEAR
+                )
+              }
+            >
+              -
+            </button>
+          </div>
+        </>
       )}
-      {countryStarts && (
-        <Timeline
-          // can only switch ID type bc rn we're using the same code, terrible pattern TODO
-          onEventClick={(eventId) => {
-            dataService.setSelectedCountry(eventId as any as CountryID);
-          }}
-          stageSize={{
-            x: 1024,
-            y: 780,
-          }}
-          events={countryStarts}
-          // we pass in "MS since Jan 1 1970"
-          yearFactor={
-            1 / (DAY_IN_YEAR * HOUR_IN_DAY * MIN_IN_HOUR * S_IN_MIN * MS_IN_S)
-          }
-          yearOffset={1970}
-        />
-      )}
+      <div style={{ display: "flex", flexDirection: "row" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {/* <QuotedText /> */}
+          {countryToName && countries && (
+            <div>
+              <WorldMap
+                container={{
+                  sizePx: { x: COLUMN_1_WIDTH, y: MAP_HEIGHT },
+                  center: [0, 0],
+                }}
+                contents={{
+                  countries,
+                  countryToName,
+                  countryLines: [],
+                  onClick: (id) =>
+                    dataService.setSelectedCountry(id as CountryID),
+                  highlights: [
+                    {
+                      highlightColor: "#FFFF00",
+                      highlightedCountries:
+                        selectedCountry !== null ? [selectedCountry] : [],
+                    },
+                  ],
+                }}
+              />
+            </div>
+          )}
+          {countryStarts && (
+            <Timeline
+              // can only switch ID type bc rn we're using the same code, terrible pattern TODO
+              onEventClick={(eventId) => {
+                dataService.setSelectedCountry(eventId as any as CountryID);
+              }}
+              stageSize={{
+                x: COLUMN_1_WIDTH,
+                y: TIMELINE_HEIGHT,
+              }}
+              events={countryStarts}
+              // we pass in "MS since Jan 1 1970"
+            />
+          )}
+        </div>
+        {true && (
+          <Network
+            nodes={nodes}
+            edges={edges}
+            stageSize={{
+              x: COLUMN_2_WIDTH,
+              y: TIMELINE_HEIGHT + MAP_HEIGHT,
+            }}
+            NodeTemplate={NodeTemplate}
+          />
+        )}
+      </div>
+      <p />
       <div>All visible data comes directly from WikiData</div>
-      <div>Known Issues:</div>
-      <p>Some founding events are doubled</p>
-      <p>Event Timeline </p>
-    </>
+      <div>Known Issues/TODOs:</div>
+      <p>
+        Some founding events are doubled (how to ontologically handle secession
+        states?)
+      </p>
+      <p>Better experience using desktop, TODO make more mobile friendly</p>
+      <p>Needs a spinner while data's loading</p>
+      <p>
+        Event Timeline Cluttered, filter helps but not very user friendly yet
+      </p>
+      <p>
+        Too Slow (~4 sec to load basic app), once I add tests I'll be able to
+        easily refactor without fear
+      </p>
+    </div>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
     //   <div className={styles.Container}>
     //     <PanelGroup direction="vertical">
