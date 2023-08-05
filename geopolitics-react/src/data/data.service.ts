@@ -1,6 +1,10 @@
-import { forceDirectedGraph } from "react-konva-components/src";
+import { forceDirectedGraph, objAdjToAdj } from "react-konva-components/src";
 import { HexString } from "type-library";
-import type { AdjacencyMatrix, KonvaSpace, ObjV2 } from "type-library/src";
+import type {
+  KonvaSpace,
+  ObjV2,
+  ObjectAdjacencyMatrix,
+} from "type-library/src";
 import { getRandomColor } from "../colorTools";
 import { NodeID, TimeSpace } from "../types";
 import { CountryID, DataStore, NodeLookup, dataStore } from "./data.store";
@@ -71,20 +75,34 @@ export class DataService {
       return { ...state, hoveredNetworkNode: nodeID };
     });
   }
-  public setNodesFromAdjMat(adjMat: AdjacencyMatrix<0 | 1 | -1>) {
-    const placements = forceDirectedGraph({ G: adjMat, H: 300, W: 300 });
+  public setNodesFromAdjMat(
+    objAdjMat: ObjectAdjacencyMatrix<NodeID, 0 | 1>,
+    { height, width }: { width: number; height: number }
+  ) {
+    const keys = [
+      ...Object.keys(objAdjMat).map((keyStr) => Number.parseInt(keyStr)),
+    ] as NodeID[];
+    const adjMat = objAdjToAdj(objAdjMat);
+    const borderFactor = 0.1;
+    const placements = forceDirectedGraph({
+      G: adjMat,
+      H: height * (2 - 2 * borderFactor),
+      W: width * (1.8 - 2 * borderFactor),
+    });
 
+    console.log("TEST123-force", objAdjMat);
     placements.forEach((placement, ii) => {
-      this.moveNode(ii as NodeID, {
-        x: Math.max(placement.x, 0) as KonvaSpace,
-        y: Math.max(placement.y, 0) as KonvaSpace,
+      this.moveNode(keys[ii], {
+        x: Math.max(placement.x + 0 * width, 0) as KonvaSpace,
+        y: Math.max(placement.y + 0 * height, 0) as KonvaSpace,
       });
-      this.recolorNode(ii as NodeID, getRandomColor());
+      this.recolorNode(keys[ii], getRandomColor());
     });
   }
 
   public moveNode(id: NodeID, newPosition: ObjV2<KonvaSpace>) {
     this.dataStore.update((state) => {
+      console.log("TEST123-MOVENODE", id, state.networkNodeRenderProps[id]);
       const mutableNodeLookup = {
         ...state.networkNodeRenderProps,
         [id]: {

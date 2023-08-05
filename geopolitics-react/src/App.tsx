@@ -128,7 +128,7 @@ function App() {
       selectedCountry,
       filterYearsNullSafe,
       filterYearsRenderReady,
-      adjMat: adjMat,
+      // adjMat,
       renderableEventNetworkNodes: nodes,
       renderableEventEdges: edges,
       eventParticipantsAsNetwork: rawNetwork,
@@ -144,7 +144,7 @@ function App() {
     "filterYearsNullSafe",
     "filterYearsRenderReady",
     "renderableEventEdges",
-    "adjMat",
+    // "adjMat",
     "countriesInSameTradeBloc",
     "renderableEventNetworkNodes",
     "selectedNetworkNode",
@@ -175,14 +175,17 @@ function App() {
   const [highlightedNode, setHighlightedNode] = useState<NodeID | null>(null);
 
   useEffect(() => {
-    if (adjMat) {
-      dataService.setNodesFromAdjMat(adjMat);
+    if (countriesInSameTradeBloc !== undefined) {
+      dataService.setNodesFromAdjMat(countriesInSameTradeBloc, {
+        width: COLUMN_2_WIDTH,
+        height: MAP_HEIGHT + TIMELINE_HEIGHT,
+      });
     }
-  }, []);
-  const COLUMN_1_WIDTH = 512;
+  }, [countriesInSameTradeBloc]);
+  const COLUMN_1_WIDTH = 256 * 4;
   const COLUMN_2_WIDTH = 512;
   const MAP_HEIGHT = 580;
-  const TIMELINE_HEIGHT = 180;
+  const TIMELINE_HEIGHT = 110;
   return (
     <div>
       <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>

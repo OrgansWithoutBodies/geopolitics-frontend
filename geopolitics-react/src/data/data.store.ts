@@ -49,8 +49,8 @@ export function createInitialState(): DataState {
         {
           color: "#FF0000",
           position: {
-            x: (Math.random() * 400) as KonvaSpace,
-            y: (Math.random() * 700) as KonvaSpace,
+            x: (Math.random() * 10) as KonvaSpace,
+            y: (Math.random() * 10) as KonvaSpace,
           },
         },
       ])

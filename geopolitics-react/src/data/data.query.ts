@@ -5,7 +5,6 @@ import {
   GeoJsonGeometryGeneric,
   HistoricalEvent,
   adjMatToRawNetwork,
-  objAdjToAdj,
 } from "react-konva-components/src";
 import { Observable, combineLatest, map } from "rxjs";
 import { NetworkNode, RawNetwork, RenderableNetworkEdge } from "type-library";
@@ -557,8 +556,8 @@ export class DataQuery extends Query<DataState> {
       })
     );
 
-  public adjMat = this.countriesInSameTradeBloc.pipe(
-    map((objAdj) => objAdjToAdj(objAdj))
-  );
+  // public adjMat:Observable<AdjMat> = this.countriesInSameTradeBloc.pipe(
+  //   map((objAdj) => objAdjToAdj(objAdj))
+  // );
 }
 export const dataQuery = new DataQuery(dataStore);
