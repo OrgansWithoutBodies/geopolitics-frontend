@@ -1,6 +1,6 @@
 import { ImperativePanelHandle } from "react-resizable-panels";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Network,
   NetworkNodeTemplate,
@@ -131,12 +131,16 @@ function App() {
       // adjMat,
       renderableEventNetworkNodes: nodes,
       renderableEventEdges: edges,
-      eventParticipantsAsNetwork: rawNetwork,
+      // eventParticipantsAsNetwork: rawNetwork,
       // selectedNetworkNode,
       countriesInSameTradeBloc,
+      bilateralRelations,
+      countryHeartMap,
     },
   ] = useData([
+    "countryHeartMap",
     "countryToName",
+    "bilateralRelations",
     "countryStarts",
     "countries",
     "eventParticipantsAsNetwork",
@@ -164,15 +168,17 @@ function App() {
       onSelectNode={(id) => {
         dataService.setSelectedCountry(id as any as CountryID);
       }}
-      onMouseLeave={() => {
-        setHighlightedNode(null);
-      }}
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      onMouseLeave={() => {}}
+      // onMouseLeave={() => {
+      //   setHighlightedNode(null);
+      // }}
       node={node}
     />
   );
 
   // const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const [highlightedNode, setHighlightedNode] = useState<NodeID | null>(null);
+  // const [highlightedNode, setHighlightedNode] = useState<NodeID | null>(null);
 
   useEffect(() => {
     if (countriesInSameTradeBloc !== undefined) {
@@ -285,7 +291,8 @@ function App() {
                 contents={{
                   countries,
                   countryToName,
-                  countryLines: [],
+                  countryHeartMap,
+                  countryLines: bilateralRelations,
                   onClick: (id) =>
                     dataService.setSelectedCountry(id as CountryID),
                   highlights: [
@@ -329,18 +336,22 @@ function App() {
       <p />
       <div>All visible data comes directly from WikiData</div>
       <div>Known Issues/TODOs:</div>
+      <p>Needs a spinner while data's loading</p>
+      <p>
+        Way Too Slow (~5-6 sec to load basic app), once I add tests I'll be able
+        to easily refactor without fear
+      </p>
+      <p>Network Placement algorithm has tendency to push nodes into corners</p>
+      <p>
+        Network dragging choppy, interrupts drag (observable pattern problem)
+      </p>
       <p>
         Some founding events are doubled (how to ontologically handle secession
         states?)
       </p>
       <p>Better experience using desktop, TODO make more mobile friendly</p>
-      <p>Needs a spinner while data's loading</p>
       <p>
         Event Timeline Cluttered, filter helps but not very user friendly yet
-      </p>
-      <p>
-        Too Slow (~4 sec to load basic app), once I add tests I'll be able to
-        easily refactor without fear
       </p>
     </div>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>

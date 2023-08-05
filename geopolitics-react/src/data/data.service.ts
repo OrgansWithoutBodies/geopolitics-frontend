@@ -90,7 +90,6 @@ export class DataService {
       W: width * (1.8 - 2 * borderFactor),
     });
 
-    console.log("TEST123-force", objAdjMat);
     placements.forEach((placement, ii) => {
       this.moveNode(keys[ii], {
         x: Math.max(placement.x + 0 * width, 0) as KonvaSpace,
@@ -102,7 +101,7 @@ export class DataService {
 
   public moveNode(id: NodeID, newPosition: ObjV2<KonvaSpace>) {
     this.dataStore.update((state) => {
-      console.log("TEST123-MOVENODE", id, state.networkNodeRenderProps[id]);
+      // console.log("TEST123-MOVENODE", id, state.networkNodeRenderProps[id]);
       const mutableNodeLookup = {
         ...state.networkNodeRenderProps,
         [id]: {

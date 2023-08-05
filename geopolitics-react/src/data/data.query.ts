@@ -1,6 +1,8 @@
 import { Query } from "@datorama/akita";
 
 import {
+  BilateralRelation,
+  CountryHeartMap,
   CountryNameLookup,
   GeoJsonGeometryGeneric,
   HistoricalEvent,
@@ -556,6 +558,47 @@ export class DataQuery extends Query<DataState> {
       })
     );
 
+  public countryHeartMap: Observable<CountryHeartMap<CountryID>> =
+    this.existingCountries.pipe(
+      map((countries) => {
+        return Object.fromEntries(
+          countries.map((country) => {
+            // Point(-63.067777777 18.031944444)
+            const [lat, lon] = country.center.value
+              .replace("Point(", "")
+              .replace(")", "")
+              .split(" ");
+            return [
+              numericalQCode(country),
+              {
+                type: "Point",
+                geometry: {
+                  type: "Point",
+                  coordinates: [Number.parseFloat(lat), Number.parseFloat(lon)],
+                },
+              },
+            ];
+          })
+        );
+      })
+    );
+  public bilateralRelations: Observable<BilateralRelation<CountryID>[]> =
+    this.countriesInSameTradeBloc.pipe(
+      map((objAdjMat) => {
+        const bilateralRelations: BilateralRelation<CountryID>[] = [];
+
+        Object.keys(objAdjMat).forEach((iiID) => {
+          const iiString = Number.parseInt(iiID) as CountryID;
+          Object.keys(objAdjMat[iiString]).forEach((jjID) => {
+            const jjString = Number.parseInt(jjID) as CountryID;
+            if (objAdjMat[iiString][jjString] === 1) {
+              bilateralRelations.push([iiString, jjString, 1]);
+            }
+          });
+        });
+        return bilateralRelations;
+      })
+    );
   // public adjMat:Observable<AdjMat> = this.countriesInSameTradeBloc.pipe(
   //   map((objAdj) => objAdjToAdj(objAdj))
   // );

@@ -251,16 +251,17 @@ export const countries = {
   mainValue: "wd:Q6256",
   includeSubclasses: true,
   query: {
-    // ...TIME_PERIOD_BLOCK({
-    //   startType: "P580",
-    //   endType: "P582",
-    //   startOptional: true,
-    //   endOptional: true,
-    // }),
     shape: {
       sourceKey: "item",
       pCode: "P3896",
       valueKey: "?shape",
+      joinChar: ".",
+      optional: false,
+    },
+    center: {
+      sourceKey: "item",
+      pCode: "P625",
+      valueKey: "?center",
       joinChar: ".",
       optional: false,
     },
@@ -278,14 +279,6 @@ export const countries = {
       joinChar: ".",
       optional: true,
     },
-    // participant: {
-    //   // TODO some way of encoding that this returns a country
-    //   sourceKey: "item",
-    //   pCode: "P710",
-    //   valueKey: "?participant",
-    //   joinChar: ".",
-    //   optional: false,
-    // },
   },
 } as const;
 export const tradeBlocs = {
