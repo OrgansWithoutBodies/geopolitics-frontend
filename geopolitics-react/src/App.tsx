@@ -350,6 +350,11 @@ function App() {
         states?)
       </p>
       <p>Better experience using desktop, TODO make more mobile friendly</p>
+      <p>Network Tooltip (generic konva tooltip)</p>
+      <p>
+        popups stay open in one until manually closed - make all controlled
+        centrally
+      </p>
       <p>
         Event Timeline Cluttered, filter helps but not very user friendly yet
       </p>
