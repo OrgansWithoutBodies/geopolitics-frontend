@@ -130,6 +130,7 @@ function App() {
       countriesInSameTradeBloc,
       bilateralRelations,
       countryHeartMap,
+      nodeColorLookup,
     },
   ] = useData([
     "countryHeartMap",
@@ -137,6 +138,7 @@ function App() {
     "bilateralRelations",
     "countryStarts",
     "countries",
+    "nodeColorLookup",
     "eventParticipantsAsNetwork",
     "selectedCountry",
     "filterYearsNullSafe",
@@ -205,6 +207,11 @@ function App() {
           Trade Bloc (just fairly random choice, should handle any state
           membership object trivially at this point just by replacing the
           wikidata QCode for Trade Bloc with something else of the same shape)
+        </p>
+        <p>
+          Network Node Color is arbitrary (other than yellow for selected node &
+          gray on timeline for countries not included in network), indicates
+          automatic detection of membership in same connected network
         </p>
       </div>
       {filterYearsRenderReady !== undefined && (
@@ -296,6 +303,7 @@ function App() {
                   countries,
                   countryToName,
                   countryHeartMap,
+                  countryNodeColors: nodeColorLookup,
                   countryLines: bilateralRelations,
                   onClick: (id) =>
                     dataService.setSelectedCountry(id as CountryID),
@@ -338,7 +346,11 @@ function App() {
         )}
       </div>
       <p />
-      <div>All visible data comes directly from WikiData</div>
+      <div>
+        All visible data comes directly from WikiData (that means if theres any
+        categorical inconsistency - blame them! or fix it yourself on wikidata &
+        it will become fixed here too)
+      </div>
       <div>Known Issues/TODOs:</div>
       <p>Needs a spinner while data's loading</p>
       <p>

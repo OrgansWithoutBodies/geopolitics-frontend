@@ -265,9 +265,9 @@ export const newsAgencies = {
 export const countries = {
   // state - for some reason canadian provinces are considered states
   // territory (Q4835091)
-  mainValue: "wd:Q7275",
+  // mainValue: "wd:Q7275",
   // country
-  // mainValue: "wd:Q6256",
+  mainValue: "wd:Q6256",
   includeSubclasses: true,
   query: {
     shape: {

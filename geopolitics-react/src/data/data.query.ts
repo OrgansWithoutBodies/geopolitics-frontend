@@ -7,6 +7,7 @@ import {
   GeoJsonGeometryGeneric,
   HistoricalEvent,
   adjMatToRawNetwork,
+  detectConnectedComponentsFromAdjMat,
 } from "react-konva-components/src";
 import { Observable, combineLatest, map } from "rxjs";
 import { NetworkNode, RawNetwork, RenderableNetworkEdge } from "type-library";
@@ -27,6 +28,7 @@ import type {
   TimeSpace,
   TimelineSpace,
 } from "../types";
+import { COLORS } from "./COLORS";
 import {
   CountryID,
   DataState,
@@ -322,48 +324,6 @@ export class DataQuery extends Query<DataState> {
         return { start: offsetDate(start), end: offsetDate(end) };
       })
     );
-
-  public countryStarts: Observable<RenderableEvent[]> = combineLatest([
-    this.countriesSortedByStart,
-    this.filterYearsNullSafe,
-    this.countriesQCodes,
-    this.selectedCountry,
-  ]).pipe(
-    map(([countries, filterYearsNullSafe, qCodes, selectedCountry]) => {
-      const { start, end } = filterYearsNullSafe;
-      const sortedCountries = [...countries].sort((a, b) =>
-        new Date(a.stateStart.value) > new Date(b.stateStart.value) ? 1 : -1
-      );
-      const filteredCountries = sortedCountries.filter((country) => {
-        const eventTime = new Date(
-          country.stateStart.value
-        ).getTime() as TimeSpace;
-        return eventTime >= start && eventTime <= end;
-      });
-      return filteredCountries.map((country) => {
-        const startDate = country.stateStart.value;
-        const eventTime = new Date(startDate).getTime() as TimeSpace;
-        const positioner = DataQuery.buildEventPositioner(start, end);
-        const genericProps = {
-          id: numericalQCode(country) as EventID,
-          eventName: `Beginning of ${qCodes[country.item.value]}`,
-          eventInfo: "",
-          eventTime,
-        };
-        return {
-          ...genericProps,
-          renderedProps: {
-            // TODO no as any, same as overloading country & event id as same
-            color:
-              (selectedCountry as any) === (genericProps.id as any)
-                ? "#FFFF00"
-                : "#FF0000",
-            position: positioner(genericProps),
-          },
-        };
-      });
-    })
-  );
   public countryToName: Observable<CountryNameLookup<number>> = combineLatest([
     this.existingCountries,
     this.countriesQCodes,
@@ -605,6 +565,79 @@ export class DataQuery extends Query<DataState> {
         return bilateralRelations;
       })
     );
+  public communities: Observable<Record<number, `${CountryID}`[]>> =
+    this.countriesInSameTradeBloc.pipe(
+      map((adjMat) => {
+        return detectConnectedComponentsFromAdjMat(adjMat);
+      })
+    );
+  public nodeColorLookup: Observable<Record<`${CountryID}`, HexString>> =
+    this.communities.pipe(
+      map((communities) => {
+        const lookup: Record<`${CountryID}`, HexString> = {};
+        Object.keys(communities).forEach((key) => {
+          communities[Number.parseInt(key) as keyof typeof communities].forEach(
+            (country) => {
+              lookup[country] = COLORS[Number.parseInt(key) % COLORS.length];
+            }
+          );
+        });
+        return lookup;
+        // return detectConnectedComponentsFromAdjMat(adjMat);
+      })
+    );
+
+  public countryStarts: Observable<RenderableEvent[]> = combineLatest([
+    this.countriesSortedByStart,
+    this.filterYearsNullSafe,
+    this.countriesQCodes,
+    this.selectedCountry,
+    this.nodeColorLookup,
+  ]).pipe(
+    map(
+      ([
+        countries,
+        filterYearsNullSafe,
+        qCodes,
+        selectedCountry,
+        nodeColorLookup,
+      ]) => {
+        const { start, end } = filterYearsNullSafe;
+        const sortedCountries = [...countries].sort((a, b) =>
+          new Date(a.stateStart.value) > new Date(b.stateStart.value) ? 1 : -1
+        );
+        const filteredCountries = sortedCountries.filter((country) => {
+          const eventTime = new Date(
+            country.stateStart.value
+          ).getTime() as TimeSpace;
+          return eventTime >= start && eventTime <= end;
+        });
+        return filteredCountries.map((country) => {
+          const startDate = country.stateStart.value;
+          const eventTime = new Date(startDate).getTime() as TimeSpace;
+          const positioner = DataQuery.buildEventPositioner(start, end);
+          const genericProps = {
+            id: numericalQCode(country) as EventID,
+            eventName: `Beginning of ${qCodes[country.item.value]}`,
+            eventInfo: "",
+            eventTime,
+          };
+          return {
+            ...genericProps,
+            renderedProps: {
+              // TODO no as any, same as overloading country & event id as same
+              color:
+                (selectedCountry as any) === (genericProps.id as any)
+                  ? "#FFFF00"
+                  : nodeColorLookup[`${genericProps.id as any}`] || "#AAAAAA",
+              position: positioner(genericProps),
+            },
+          };
+        });
+      }
+    )
+  );
+
   // public adjMat:Observable<AdjMat> = this.countriesInSameTradeBloc.pipe(
   //   map((objAdj) => objAdjToAdj(objAdj))
   // );

@@ -11,22 +11,9 @@ import type {
   ObjectAdjacencyMatrix,
 } from "type-library/src";
 import { TimeSpace } from "../types";
+import { COLORS } from "./COLORS";
 import { CountryID, DataStore, dataStore } from "./data.store";
 
-// declare global {
-//   interface Object {
-//     keys: (val: unknown) => (keyof typeof val)[];
-//   }
-// }
-const COLORS: HexString[] = [
-  "#FF0000",
-  "#00FF00",
-  "#0000FF",
-  "#FF00FF",
-  "#FF8800",
-  "#00FFFF",
-  "#7722FF",
-];
 export class DataService {
   public setInitialDateFilter(initialDateFilter: TimeSpace | null) {
     this.dataStore.update((state) => {
@@ -149,14 +136,13 @@ export class DataService {
     colors: HexString[] = COLORS
   ) {
     const communities = detectConnectedComponentsFromAdjMat(adjMat);
-    console.log("TEST123-communities", communities, Object.keys(adjMat).length);
-    Object.keys(communities).forEach((communityKey, ii) => {
+    Object.keys(communities).forEach((communityKey) => {
       communities[
         Number.parseInt(communityKey) as keyof typeof communities
       ].forEach((country) => {
         this.recolorNode(
           Number.parseInt(country) as NodeID,
-          colors[ii % colors.length]
+          colors[Number.parseInt(communityKey) % colors.length]
         );
       });
     });
