@@ -300,6 +300,40 @@ export const countries = {
     },
   },
 } as const;
+export const dependentTerritories = {
+  mainValue: "wd:Q161243",
+  includeSubclasses: true,
+  query: {
+    shape: {
+      sourceKey: "item",
+      pCode: "P3896",
+      valueKey: "?shape",
+      joinChar: ".",
+      optional: false,
+    },
+    center: {
+      sourceKey: "item",
+      pCode: "P625",
+      valueKey: "?center",
+      joinChar: ".",
+      optional: false,
+    },
+    stateStart: {
+      sourceKey: "item",
+      pCode: "P571",
+      valueKey: "?stateStart",
+      joinChar: ".",
+      optional: false,
+    },
+    stateEnd: {
+      sourceKey: "item",
+      pCode: "P571",
+      valueKey: "?stateEnd",
+      joinChar: ".",
+      optional: true,
+    },
+  },
+} as const;
 export const tradeBlocs = {
   mainValue: "wd:Q1129645",
   includeSubclasses: true,

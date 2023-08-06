@@ -7,6 +7,7 @@ import {
   buildQueryStringAndPost,
   colonies,
   countries,
+  dependentTerritories,
   getQCodeNames,
   independenceDeclarations,
   intergovernmentalOrganizations,
@@ -52,6 +53,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   mines,
   regimeChanges,
   internationalOrganizations,
+  dependentTerritories,
   railways,
   independence: independenceDeclarations,
   parties,
@@ -137,12 +139,12 @@ program
       );
 
       // TODO formulate this better - this is where outlines come from
-      if (name === "countries") {
-        if (!fs.existsSync("out/countries")) {
-          fs.mkdirSync("out/countries");
+      if (name === "countries" || name === "dependentTerritories") {
+        if (!fs.existsSync(`out/${name}`)) {
+          fs.mkdirSync(`out/${name}`);
         }
         fs.writeFileSync(
-          "out/countries/index.ts",
+          `out/${name}/index.ts`,
           `${Object.keys(qCodeQueryResults)
             .map((qcode) => {
               return `import ${qcode} from './${qcode}.outline.data.json';`;
@@ -159,7 +161,7 @@ program
             .join("%20");
           if (
             !fs.existsSync(
-              `out/countries/${country.item.value}.outline.data.json`
+              `out/${name}/${country.item.value}.outline.data.json`
             )
           ) {
             await sleep(2 * MS_IN_SEC);
@@ -169,7 +171,7 @@ program
               throw new Error();
             }
             fs.writeFile(
-              `out/countries/${country.item.value}.outline.data.json`,
+              `out/${name}/${country.item.value}.outline.data.json`,
               `${JSON.stringify(countryResult.data.data)}`,
               (err) => console.log(err)
             );

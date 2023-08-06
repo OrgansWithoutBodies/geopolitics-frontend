@@ -5,8 +5,11 @@ import { NetworkNodeRenderProps } from "type-library/src";
 import { CountryOutlines } from "../../dataPrep/out/countries";
 import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
 import { QCodes as WDCountryQCodes } from "../../dataPrep/out/countries.qcodes.data";
+import { CountryOutlines as DependentTerritoryOutlines } from "../../dataPrep/out/dependentTerritories";
 // import { WDType as WDTradeBlocs } from "../../dataPrep/out/intergovernmentalOrganizations.data";
 // import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/intergovernmentalOrganizations.qcodes.data";
+import { WDType as WDDependentTerritories } from "../../dataPrep/out/dependentTerritories.data";
+import { QCodes as WDDependentTerritoriesQCodes } from "../../dataPrep/out/dependentTerritories.qcodes.data";
 import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
 import { QCodes as WDInternationalOrgQCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
 import { WDType as WDTradeBlocs } from "../../dataPrep/out/tradeBlocs.data";
@@ -63,9 +66,9 @@ export function createInitialState(): DataState {
     internationalOrgsQCodes: WDInternationalOrgQCodes,
     wars: WDWar,
     warsQCodes: WDWarQCodes,
-    countries: WDCountry,
-    countriesQCodes: WDCountryQCodes,
-    countriesOutlines: CountryOutlines,
+    countries: [...WDCountry, ...WDDependentTerritories],
+    countriesQCodes: { ...WDCountryQCodes, ...WDDependentTerritoriesQCodes },
+    countriesOutlines: { ...CountryOutlines, ...DependentTerritoryOutlines },
     tradeBlocs: WDTradeBlocs,
     tradeBlocsQCodes: WDTradeBlocsQCodes,
     events: [],
