@@ -12,18 +12,12 @@ import { Timeline } from "./Timeline";
 import { countryInfo } from "./countryData";
 import { dataService } from "./data/data.service";
 import { CountryID } from "./data/data.store";
+import { intersectSets, subtractSets } from "./intersectSets";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
 
-const intersectSets = (a: Set<any>, b: Set<any>) =>
-  new Set([...a].filter((i) => b.has(i)));
-const notSet = (a: Set<any>, U: Set<any>) =>
-  new Set([...U].filter((i) => !a.has(i)));
-// subtract a - b
-const subtractSets = (a: Set<any>, b: Set<any>, U: Set<any>) =>
-  intersectSets(a, notSet(b, U));
 ``;
 
 // type HighlightRecord<TKey extends number> = Record<
@@ -186,6 +180,7 @@ function App() {
         width: COLUMN_2_WIDTH,
         height: MAP_HEIGHT + TIMELINE_HEIGHT,
       });
+      dataService.colorNetworkByCommunity(countriesInSameTradeBloc);
     }
   }, [countriesInSameTradeBloc]);
   const COLUMN_1_WIDTH = 256 * 4;
@@ -207,7 +202,9 @@ function App() {
         <p>Change Start Year & End Year to filter timeline </p>
         <p>
           Timeline shows beginning of state, Network shows membership in same
-          Trade Bloc{" "}
+          Trade Bloc (just fairly random choice, should handle any state
+          membership object trivially at this point just by replacing the
+          wikidata QCode for Trade Bloc with something else of the same shape)
         </p>
       </div>
       {filterYearsRenderReady !== undefined && (
@@ -278,6 +275,13 @@ function App() {
           </div>
         </>
       )}
+      {/* <SliderBar
+        handlePercs={{ low: 0, high: 1 }}
+        stageSize={{
+          x: COLUMN_1_WIDTH,
+          y: TIMELINE_HEIGHT / 2,
+        }}
+      /> */}
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {/* <QuotedText /> */}

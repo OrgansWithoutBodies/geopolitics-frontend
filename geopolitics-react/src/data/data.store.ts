@@ -1,17 +1,19 @@
-import { Store } from "@datorama/akita";
+import { Store, StoreConfig } from "@datorama/akita";
 import { HistoricalEvent, NetworkNode } from "react-konva-components/src";
-import { BrandedNumber, KonvaSpace } from "type-library";
+import { BrandedNumber, KonvaSpace, NodeID } from "type-library";
 import { NetworkNodeRenderProps } from "type-library/src";
 import { CountryOutlines } from "../../dataPrep/out/countries";
 import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
 import { QCodes as WDCountryQCodes } from "../../dataPrep/out/countries.qcodes.data";
+// import { WDType as WDTradeBlocs } from "../../dataPrep/out/intergovernmentalOrganizations.data";
+// import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/intergovernmentalOrganizations.qcodes.data";
 import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
 import { QCodes as WDInternationalOrgQCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
 import { WDType as WDTradeBlocs } from "../../dataPrep/out/tradeBlocs.data";
 import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/tradeBlocs.qcodes.data";
 import { WDType as WDWar } from "../../dataPrep/out/wars.data";
 import { QCodes as WDWarQCodes } from "../../dataPrep/out/wars.qcodes.data";
-import type { NodeID, TimeSpace } from "../types";
+import type { TimeSpace } from "../types";
 
 export type NodeLookup = Record<NodeID, NetworkNode>;
 export type QCode<TNumber extends number = number> = `Q${TNumber}`;
@@ -71,8 +73,7 @@ export function createInitialState(): DataState {
     finalDateFilter: null,
   };
 }
-//! TODO
-// @StoreConfig({ name: "data" })
+@StoreConfig({ name: "data" })
 export class DataStore extends Store<DataState> {
   constructor() {
     super(createInitialState());

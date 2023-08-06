@@ -214,6 +214,21 @@ export const hospitals = {
   },
 } as const;
 
+// military action (Q15835236)
+// drone attack (Q30588142)
+// airstrike (Q2380335)
+// military strike (Q6857862)
+// participant (P710)
+// object has role (P3831)
+// perpetrator (Q18028810)
+// sourcing circumstances (P1480)
+// military operation plan (Q149377)
+// state (former or current) (Q96196009)
+// facet of (P1269)
+// republic (Q7270)
+// contains the administrative territorial entity (P150)
+// history of Lithuania (Q215063)
+// target (P533)
 export const mines = {
   mainValue: "wd:Q820477",
   includeSubclasses: true,
@@ -248,7 +263,11 @@ export const newsAgencies = {
 // inception (P571)
 // dissolved, abolished or demolished date (P576)
 export const countries = {
-  mainValue: "wd:Q6256",
+  // state - for some reason canadian provinces are considered states
+  // territory (Q4835091)
+  mainValue: "wd:Q7275",
+  // country
+  // mainValue: "wd:Q6256",
   includeSubclasses: true,
   query: {
     shape: {
@@ -283,6 +302,19 @@ export const countries = {
 } as const;
 export const tradeBlocs = {
   mainValue: "wd:Q1129645",
+  includeSubclasses: true,
+  query: {
+    memberState: {
+      sourceKey: "item",
+      pCode: "P527",
+      valueKey: "?memberState",
+      joinChar: ".",
+      optional: false,
+    },
+  },
+} as const;
+export const intergovernmentalOrganizations = {
+  mainValue: "wd:Q245065",
   includeSubclasses: true,
   query: {
     memberState: {

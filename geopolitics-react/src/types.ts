@@ -27,7 +27,6 @@ export type PeriodOrSingleton<TNum extends number> = LineSegment<TNum> | TNum;
 export type BrandedNumber<Brand extends string> = BrandedType<number, Brand>;
 export type BrandedString<Brand extends string> = BrandedType<string, Brand>;
 export type EventID = BrandedNumber<"Event">;
-export type NodeID = BrandedNumber<"Node">;
 export type AgentID = BrandedNumber<"Agent">;
 export type ConversionTag<TFrom extends number, TTo extends number> = {
   __from: TFrom;

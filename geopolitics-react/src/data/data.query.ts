@@ -36,7 +36,7 @@ import {
   numericalQCode,
 } from "./data.store";
 
-type BlocID = BrandedNumber<"BlocID">;
+export type BlocID = BrandedNumber<"BlocID">;
 
 const getRandomColor = (): HexString => {
   // return "#FFFFFF";
@@ -115,7 +115,7 @@ export class DataQuery extends Query<DataState> {
   constructor(protected store: DataStore) {
     super(store);
   }
-
+  // TODO fully connected subcomponents
   private filterYears = this.select("filterYears");
   private networkNodeRenderProps = this.select("networkNodeRenderProps");
   private unfilteredEvents = this.select("events");
@@ -442,7 +442,7 @@ export class DataQuery extends Query<DataState> {
     })
   );
   public countriesInSameTradeBloc: Observable<
-    ObjectAdjacencyMatrix<CountryID, 0 | 1>
+    ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1>
   > = combineLatest([this.blocMemberships]).pipe(
     map(([blocMemberships]) => {
       const groupedBlocs = Object.values(blocMemberships);
@@ -457,7 +457,7 @@ export class DataQuery extends Query<DataState> {
           return [ii, entity] as [number, QCode<CountryID>];
         })
       );
-      const tradeBlocMatrix: ObjectAdjacencyMatrix<CountryID, 0 | 1> =
+      const tradeBlocMatrix: ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1> =
         Object.fromEntries(
           new Array(uniqueEntitiesInTradeBlocs.length).fill(0).map((_, ii) => [
             numericalQCode({
@@ -479,10 +479,8 @@ export class DataQuery extends Query<DataState> {
         entryList.forEach((entry, ii) => {
           entryList.forEach((otherEntry, jj) => {
             if (jj > ii) {
-              tradeBlocMatrix[
-                numericalQCode({ item: { value: entry } }) as CountryID
-              ][
-                numericalQCode({ item: { value: otherEntry } }) as CountryID
+              tradeBlocMatrix[`${entry.replace("Q", "")}` as `${CountryID}`][
+                `${otherEntry.replace("Q", "")}` as `${CountryID}`
               ] = 1;
             }
           });
@@ -588,13 +586,21 @@ export class DataQuery extends Query<DataState> {
         const bilateralRelations: BilateralRelation<CountryID>[] = [];
 
         Object.keys(objAdjMat).forEach((iiID) => {
-          const iiString = Number.parseInt(iiID) as CountryID;
-          Object.keys(objAdjMat[iiString]).forEach((jjID) => {
-            const jjString = Number.parseInt(jjID) as CountryID;
-            if (objAdjMat[iiString][jjString] === 1) {
-              bilateralRelations.push([iiString, jjString, 1]);
+          Object.keys(objAdjMat[iiID as keyof typeof objAdjMat]).forEach(
+            (jjID) => {
+              if (
+                objAdjMat[iiID as keyof typeof objAdjMat][
+                  jjID as keyof typeof objAdjMat
+                ] === 1
+              ) {
+                bilateralRelations.push([
+                  Number.parseInt(iiID) as CountryID,
+                  Number.parseInt(jjID) as CountryID,
+                  1,
+                ]);
+              }
             }
-          });
+          );
         });
         return bilateralRelations;
       })
