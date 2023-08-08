@@ -259,81 +259,53 @@ export const newsAgencies = {
     },
   },
 } as const;
+const stateActorObject = (qCode: QCode<number & { __brand: "Country" }>) =>
+  ({
+    mainValue: `wd:${qCode}`,
+    includeSubclasses: true,
+    query: {
+      shape: {
+        sourceKey: "item",
+        pCode: "P3896",
+        valueKey: "?shape",
+        joinChar: ".",
+        optional: false,
+      },
+      center: {
+        sourceKey: "item",
+        pCode: "P625",
+        valueKey: "?center",
+        joinChar: ".",
+        optional: false,
+      },
+      stateStart: {
+        sourceKey: "item",
+        pCode: "P571",
+        valueKey: "?stateStart",
+        joinChar: ".",
+        optional: false,
+      },
+      stateEnd: {
+        sourceKey: "item",
+        pCode: "P571",
+        valueKey: "?stateEnd",
+        joinChar: ".",
+        optional: true,
+      },
+    },
+  } as const);
 
 // inception (P571)
 // dissolved, abolished or demolished date (P576)
-export const countries = {
-  // state - for some reason canadian provinces are considered states
-  // territory (Q4835091)
-  // mainValue: "wd:Q7275",
-  // country
-  mainValue: "wd:Q6256",
-  includeSubclasses: true,
-  query: {
-    shape: {
-      sourceKey: "item",
-      pCode: "P3896",
-      valueKey: "?shape",
-      joinChar: ".",
-      optional: false,
-    },
-    center: {
-      sourceKey: "item",
-      pCode: "P625",
-      valueKey: "?center",
-      joinChar: ".",
-      optional: false,
-    },
-    stateStart: {
-      sourceKey: "item",
-      pCode: "P571",
-      valueKey: "?stateStart",
-      joinChar: ".",
-      optional: false,
-    },
-    stateEnd: {
-      sourceKey: "item",
-      pCode: "P571",
-      valueKey: "?stateEnd",
-      joinChar: ".",
-      optional: true,
-    },
-  },
-} as const;
-export const dependentTerritories = {
-  mainValue: "wd:Q161243",
-  includeSubclasses: true,
-  query: {
-    shape: {
-      sourceKey: "item",
-      pCode: "P3896",
-      valueKey: "?shape",
-      joinChar: ".",
-      optional: false,
-    },
-    center: {
-      sourceKey: "item",
-      pCode: "P625",
-      valueKey: "?center",
-      joinChar: ".",
-      optional: false,
-    },
-    stateStart: {
-      sourceKey: "item",
-      pCode: "P571",
-      valueKey: "?stateStart",
-      joinChar: ".",
-      optional: false,
-    },
-    stateEnd: {
-      sourceKey: "item",
-      pCode: "P571",
-      valueKey: "?stateEnd",
-      joinChar: ".",
-      optional: true,
-    },
-  },
-} as const;
+export const countries = stateActorObject("Q6256" as any);
+// state - for some reason canadian provinces are considered states
+// territory (Q4835091)
+// mainValue: "wd:Q7275",
+// country
+export const dependentTerritories = stateActorObject("Q161243" as any);
+export const disputedTerritories = stateActorObject("Q15239622" as any);
+// state with limited recognition (Q15634554)
+export const limitedRecognitionStates = stateActorObject("Q15634554" as any);
 export const tradeBlocs = {
   mainValue: "wd:Q1129645",
   includeSubclasses: true,

@@ -8,10 +8,12 @@ import {
   colonies,
   countries,
   dependentTerritories,
+  disputedTerritories,
   getQCodeNames,
   independenceDeclarations,
   intergovernmentalOrganizations,
   internationalOrganizations,
+  limitedRecognitionStates,
   metals,
   militaryAlliances,
   minerals,
@@ -55,6 +57,8 @@ const availableQueries: Record<string, AvailableQuery> = {
   internationalOrganizations,
   dependentTerritories,
   railways,
+  disputedTerritories,
+  limitedRecognitionStates,
   independence: independenceDeclarations,
   parties,
   revolutions,
@@ -139,7 +143,12 @@ program
       );
 
       // TODO formulate this better - this is where outlines come from
-      if (name === "countries" || name === "dependentTerritories") {
+      if (
+        name === "countries" ||
+        name === "limitedRecognitionStates" ||
+        name === "dependentTerritories" ||
+        name === "disputedTerritories"
+      ) {
         if (!fs.existsSync(`out/${name}`)) {
           fs.mkdirSync(`out/${name}`);
         }

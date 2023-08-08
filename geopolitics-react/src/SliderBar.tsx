@@ -2,16 +2,7 @@
 // import { Circle, Group, Layer, Rect, Stage } from "react-konva";
 // import { ArrV2, ObjV2 } from "type-library";
 
-// export function normalize(
-//   val: number,
-//   initialRange: ArrV2,
-//   mappedRange: ArrV2
-// ) {
-//   const ratioAlongInitialRange =
-//     (val - initialRange[0]) / (initialRange[1] - initialRange[0]);
-//   const sizeOfMappedRange = mappedRange[1] - mappedRange[0];
-//   return ratioAlongInitialRange * sizeOfMappedRange + mappedRange[0];
-// }
+//
 // function SliderHandle({
 //   val,
 //   setVal,

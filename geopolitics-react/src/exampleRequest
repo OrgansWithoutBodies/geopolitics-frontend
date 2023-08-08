@@ -1,0 +1,25 @@
+https://www.wikidata.org/w/api.php
+
+action=wbsetclaim&format=json&claim=%7B%22type%22%3A%22statement%22%2C%22mainsnak%22%3A%7B%22snaktype%22%3A%22value%22%2C%22property%22%3A%22P527%22%2C%22datavalue%22%3A%7B%22type%22%3A%22wikibase-entityid%22%2C%22value%22%3A%7B%22id%22%3A%22Q851%22%7D%7D%7D%2C%22id%22%3A%22Q243630%24cb9cdf0f-441e-3872-630f-11b917c32daf%22%2C%22qualifiers%22%3A%7B%22P2868%22%3A%5B%7B%22snaktype%22%3A%22value%22%2C%22property%22%3A%22P2868%22%2C%22datavalue%22%3A%7B%22type%22%3A%22wikibase-entityid%22%2C%22value%22%3A%7B%22id%22%3A%22Q54875338%22%7D%7D%7D%5D%7D%2C%22qualifiers-order%22%3A%5B%22P2868%22%5D%2C%22rank%22%3A%22normal%22%7D&baserevid=1948595538&tags=%1Fwikidata-ui&bot=1&assertuser=Vikivdata&errorformat=plaintext&uselang=en&token=51a076bf5363c57c4845c4474c99b4ca64d091d2%2B%5C
+{"type":"statement","mainsnak":{"snaktype":"value","property":"P527","datavalue":{"type":"wikibase-entityid","value":{"id":"Q851"}}},"id":"Q243630$cb9cdf0f-441e-3872-630f-11b917c32daf","qualifiers":{"P2868":[{"snaktype":"value","property":"P2868","datavalue":{"type":"wikibase-entityid","value":{"id":"Q54875338"}}}]},"qualifiers-order":["P2868"],"rank":"normal"}
+
+POST /w/api.php HTTP/2
+Host: www.wikidata.org
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0
+Accept: application/json, text/javascript, */*; q=0.01
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://www.wikidata.org/wiki/Q243630
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+X-Requested-With: XMLHttpRequest
+Content-Length: 779
+Origin: https://www.wikidata.org
+DNT: 1
+Connection: keep-alive
+Cookie: WMF-Last-Access=07-Aug-2023; WMF-Last-Access-Global=07-Aug-2023; wikidatawikiwmE-sessionTickLastTickTime=1691390543369; wikidatawikiwmE-sessionTickTickCount=100; wikidatawikiwikibase-entitytermsview-showEntitytermslistview=true; GeoIP=US:CA:Vacaville:38.35:-121.95:v4; wikidatawikimwuser-sessionId=faf573d11fd00cda618e; ss0-wikidatawikiSession=9pun7bg6qlkrtcv5i2t3d8kcudng3vtk; wikidatawikiSession=9pun7bg6qlkrtcv5i2t3d8kcudng3vtk; loginnotify_prevlogins=2023-14b7sdc-46zdktzbk5xljhjgemet9f0221806c7; wikidatawikiss0-UserID=6368164; wikidatawikiUserID=6368164; wikidatawikiss0-UserName=Vikivdata; wikidatawikiUserName=Vikivdata; centralauth_ss0-User=Vikivdata; centralauth_User=Vikivdata; ss0-centralauth_Session=fc5e126a8f59a0c613b031a8b69858e0; centralauth_Session=fc5e126a8f59a0c613b031a8b69858e0; NetworkProbeLimit=0.001
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+TE: trailers
+
+curl 'https://www.wikidata.org/w/api.php' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Accept-Language: en-US,en;q=0.5' -H 'Accept-Encoding: gzip, deflate, br' -H 'Referer: https://www.wikidata.org/wiki/Q243630' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' -H 'X-Requested-With: XMLHttpRequest' -H 'Origin: https://www.wikidata.org' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: WMF-Last-Access=07-Aug-2023; WMF-Last-Access-Global=07-Aug-2023; wikidatawikiwmE-sessionTickLastTickTime=1691390543369; wikidatawikiwmE-sessionTickTickCount=100; wikidatawikiwikibase-entitytermsview-showEntitytermslistview=true; GeoIP=US:CA:Vacaville:38.35:-121.95:v4; wikidatawikimwuser-sessionId=faf573d11fd00cda618e; ss0-wikidatawikiSession=9pun7bg6qlkrtcv5i2t3d8kcudng3vtk; wikidatawikiSession=9pun7bg6qlkrtcv5i2t3d8kcudng3vtk; loginnotify_prevlogins=2023-14b7sdc-46zdktzbk5xljhjgemet9f0221806c7; wikidatawikiss0-UserID=6368164; wikidatawikiUserID=6368164; wikidatawikiss0-UserName=Vikivdata; wikidatawikiUserName=Vikivdata; centralauth_ss0-User=Vikivdata; centralauth_User=Vikivdata; ss0-centralauth_Session=fc5e126a8f59a0c613b031a8b69858e0; centralauth_Session=fc5e126a8f59a0c613b031a8b69858e0; NetworkProbeLimit=0.001' -H 'Sec-Fetch-Dest: empty' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Site: same-origin' -H 'TE: trailers' --data-raw 'action=wbsetclaim&format=json&claim=%7B%22type%22%3A%22statement%22%2C%22mainsnak%22%3A%7B%22snaktype%22%3A%22value%22%2C%22property%22%3A%22P527%22%2C%22datavalue%22%3A%7B%22type%22%3A%22wikibase-entityid%22%2C%22value%22%3A%7B%22id%22%3A%22Q851%22%7D%7D%7D%2C%22id%22%3A%22Q243630%24cb9cdf0f-441e-3872-630f-11b917c32daf%22%2C%22qualifiers%22%3A%7B%22P2868%22%3A%5B%7B%22snaktype%22%3A%22value%22%2C%22property%22%3A%22P2868%22%2C%22datavalue%22%3A%7B%22type%22%3A%22wikibase-entityid%22%2C%22value%22%3A%7B%22id%22%3A%22Q54875338%22%7D%7D%7D%5D%7D%2C%22qualifiers-order%22%3A%5B%22P2868%22%5D%2C%22rank%22%3A%22normal%22%7D&baserevid=1948595538&tags=%1Fwikidata-ui&bot=1&assertuser=Vikivdata&errorformat=plaintext&uselang=en&token=51a076bf5363c57c4845c4474c99b4ca64d091d2%2B%5C'

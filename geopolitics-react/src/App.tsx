@@ -1,25 +1,33 @@
 import { ImperativePanelHandle } from "react-resizable-panels";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  LinePlot,
   Network,
   NetworkNodeTemplate,
   NodesComponentProps,
   WorldMap,
 } from "react-konva-components/src";
-import { KonvaSpace, NodeID, TimeSpace } from "type-library";
+import { HexString, KonvaSpace, NodeID, TimeSpace } from "type-library";
+import { ArrV2 } from "type-library/src";
 import { Timeline } from "./Timeline";
 import { countryInfo } from "./countryData";
 import { dataService } from "./data/data.service";
-import { CountryID } from "./data/data.store";
+import { CountryID, QCode } from "./data/data.store";
 import { intersectSets, subtractSets } from "./intersectSets";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 type CountryCode = (typeof countryInfo)[number]["alpha-3"];
 const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
 
-``;
+type QCodeName = {
+  qCode: QCode;
+  name: string;
+};
 
+function Q({ qCode, name }: QCodeName): JSX.Element {
+  return <a href={`https://www.wikidata.org/wiki/${qCode}`}>{name}</a>;
+}
 // type HighlightRecord<TKey extends number> = Record<
 //   TKey,
 //   HighlightSpecification<TKey>
@@ -174,7 +182,7 @@ function App() {
   );
 
   // const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  // const [highlightedNode, setHighlightedNode] = useState<NodeID | null>(null);
+  const [highlightedPlot, setHighlightedPlot] = useState<number | null>(null);
 
   useEffect(() => {
     if (countriesInSameTradeBloc !== undefined) {
@@ -189,13 +197,20 @@ function App() {
   const COLUMN_2_WIDTH = 512;
   const MAP_HEIGHT = 580;
   const TIMELINE_HEIGHT = 110;
+  const NetworkGeneratorObject: QCodeName = {
+    qCode: "Q1129645",
+    name: "Trade Bloc",
+  };
+
   return (
     <div>
       <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>
         <div>DEMO APP</div>
         <p>
-          Shows countries (outlines from wikidata), shows timeline with all
-          state founding events.
+          Map shows <Q {...{ qCode: "Q6256", name: "countries" }} /> &{" "}
+          <Q {...{ qCode: "Q161243", name: "dependent territories" }} />{" "}
+          (outlines from wikidata), shows timeline with all state founding
+          events.
         </p>
         <p>
           If an entity is selected in one, it will also become selected in the
@@ -203,10 +218,12 @@ function App() {
         </p>
         <p>Change Start Year & End Year to filter timeline </p>
         <p>
-          Timeline shows beginning of state, Network shows membership in same
-          Trade Bloc (just fairly random choice, should handle any state
-          membership object trivially at this point just by replacing the
-          wikidata QCode for Trade Bloc with something else of the same shape)
+          Timeline shows beginning of state, Network shows membership in same{" "}
+          <Q {...NetworkGeneratorObject} /> (fairly random choice, mainly to
+          demonstrate community detection, handles any state membership object
+          trivially at this point just by replacing the wikidata QCode for{" "}
+          <Q {...NetworkGeneratorObject} /> with something else of the same
+          shape)
         </p>
         <p>
           Network Node Color is arbitrary (other than yellow for selected node &
@@ -282,6 +299,36 @@ function App() {
           </div>
         </>
       )}
+      <LinePlot
+        stageSize={{ x: COLUMN_1_WIDTH, y: 200 }}
+        data={[
+          {
+            points: [...Array(100).keys()].map(
+              (ii) => [ii / 2, 10 * Math.sin(ii / 2)] as ArrV2
+            ),
+            color: highlightedPlot === 0 ? "#FFFF00" : ("#FF0000" as HexString),
+          },
+          {
+            points: [...Array(100).keys()].map(
+              (ii) => [ii / 2, -10 * Math.sin(ii / 2)] as ArrV2
+            ),
+            color: highlightedPlot === 1 ? "#FFFF00" : ("#0000FF" as HexString),
+          },
+        ]}
+        centerPoint={{ x: -COLUMN_1_WIDTH / 2, y: 0 }}
+        // centerPoint={{ x: 0, y: 0 }}
+        plotRange={{
+          min: {
+            x: 0,
+            y: -10,
+          },
+          max: {
+            x: 100,
+            y: 10,
+          },
+        }}
+        onSelect={setHighlightedPlot}
+      />
       {/* <SliderBar
         handlePercs={{ low: 0, high: 1 }}
         stageSize={{
@@ -357,7 +404,11 @@ function App() {
         Way Too Slow (~5-6 sec to load basic app), once I add tests I'll be able
         to easily refactor without fear
       </p>
-      <p>Network Placement algorithm has tendency to push nodes into corners</p>
+      <p>
+        Network Placement algorithm has tendency to push nodes into corners
+        (seed is random, reloading page might get a seed that looks better for
+        current data, eventually will need to implement better algorithm)
+      </p>
       <p>
         Network dragging choppy, interrupts drag (observable pattern problem)
       </p>
@@ -374,6 +425,7 @@ function App() {
       <p>
         Event Timeline Cluttered, filter helps but not very user friendly yet
       </p>
+      <p>Need to figure out how to handle overlapping claims</p>
     </div>
     // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
     //   <div className={styles.Container}>
