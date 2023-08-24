@@ -8,9 +8,15 @@ import { KonvaSpace, NodeID, TimeSpace } from "type-library";
 import { Timeline } from "./Timeline";
 import { dataService } from "./data/data.service";
 import { CountryID, PCode, QCode } from "./data/data.store";
+import { themeColors } from "./theme";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 
+const RankedEntries = [
+  { label: "Member", color: themeColors.Pine },
+  { label: "Applicant", color: themeColors.Grass },
+  // { label: "Interested", color: themeColors.PaleGreen },
+];
 const COLUMN_1_WIDTH = 256 * 4;
 const COLUMN_2_WIDTH = 512;
 const MAP_HEIGHT = 580;
@@ -229,26 +235,45 @@ function App() {
                   onClick: (id) =>
                     dataService.setSelectedCountry(id as CountryID),
                   highlights: [
-                    countryColorLookup,
                     {
                       highlightColor: "#FFFF00",
                       highlightedCountries:
                         selectedCountry !== null ? [selectedCountry] : [],
                     },
+                    ...countryColorLookup,
                   ],
                   labels: [
                     {
+                      type: "text",
                       text: "BRICS",
                       fontWeight: "bolder",
-                      fontSize: 20,
-                      position: { lat: 2.959788, lng: -140.47891 },
+                      fontSize: 50,
+                      position: {
+                        lat: -10 - (RankedEntries.length - 0.5) * 10,
+                        lng: -140,
+                      },
                     },
                     {
-                      text: `as of ${"24 August 2023"}`,
+                      type: "text",
+                      text: `As of ${"24 August 2023"}`,
                       fontWeight: "lighter",
                       fontSize: 20,
-                      position: { lat: 2.959788, lng: -150.47891 },
+                      position: {
+                        lat: -10 - 15 - (RankedEntries.length - 0.5) * 10,
+                        lng: -140,
+                      },
                     },
+                    ...RankedEntries.map((entry, ii) => {
+                      return {
+                        type: "colorbox",
+                        colorBox: entry.color,
+                        text: entry.label,
+                        fontWeight: "normal",
+                        fontSize: 20,
+                        colorBoxSize: 20,
+                        position: { lat: -10 - ii * 10, lng: -140 },
+                      } as const;
+                    }),
                   ],
                 }}
               />

@@ -345,17 +345,23 @@ export const geopoliticalGroups = {
   query: [
     {
       sourceKey: "item",
-      prefix: "wdt",
-
+      prefix: "p",
+      pCode: "P527",
+      valueKey: "memberStateStatement",
+      joinChar: ".",
+      optional: false,
+    },
+    {
+      sourceKey: "memberStateStatement",
+      prefix: "ps",
       pCode: "P527",
       valueKey: "memberState",
       joinChar: ".",
       optional: false,
     },
     {
-      sourceKey: "memberState",
+      sourceKey: "memberStateStatement",
       prefix: "pq",
-
       pCode: "P2868",
       valueKey: "membershipStatus",
       joinChar: ".",

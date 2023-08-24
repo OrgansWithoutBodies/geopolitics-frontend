@@ -110,7 +110,7 @@ export type QueryValueSpec<
   // FILTER
   // SERVICE
   TJoinChar extends "." | ";" = ".",
-  TPrefix extends "wdt" | "pq" = "wdt" | "pq"
+  TPrefix extends "wdt" | "pq" | "p" | "ps" = "wdt" | "pq" | "p" | "ps"
 > = {
   sourceKey: TSourceKey;
   prefix: TPrefix;

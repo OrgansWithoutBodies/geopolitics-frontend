@@ -18,6 +18,7 @@ import type {
   RenderableNetworkNode,
 } from "type-library/src";
 import { periodIsSegmentGuard } from "../Timeline";
+import { themeColors } from "../theme";
 import { offsetDate } from "../timeTools";
 import type {
   BrandedNumber,
@@ -128,17 +129,31 @@ export class DataQuery extends Query<DataState> {
   private unfilteredEvents = this.select("events");
   public geopoliticalGroups = this.select("geopoliticalGroups");
 
-  public countryColorLookup: Observable<HighlightSpecification<CountryID>> =
+  public countryColorLookup: Observable<HighlightSpecification<CountryID>[]> =
     this.geopoliticalGroups.pipe(
       map((groups) => {
-        return {
-          highlightedCountries: groups
-            .filter(({ item }) => item.value === "Q243630")
-            .map(({ memberState }) =>
-              QCodeToCountryNumber(memberState.value as QCode<CountryID>)
-            ),
-          highlightColor: "#33FF77",
-        };
+        const relevantGroups = groups.filter(
+          ({ item }) => item.value === "Q243630"
+        );
+        return [
+          {
+            // currently (Aug 2023) only applicants have a membershipStatus tag
+            highlightedCountries: relevantGroups
+              .filter((group) => "membershipStatus" in group)
+              .map(({ memberState }) =>
+                QCodeToCountryNumber(memberState.value as QCode<CountryID>)
+              ),
+            highlightColor: themeColors.Grass,
+          },
+          {
+            highlightedCountries: relevantGroups
+              .filter((group) => !("membershipStatus" in group))
+              .map(({ memberState }) =>
+                QCodeToCountryNumber(memberState.value as QCode<CountryID>)
+              ),
+            highlightColor: themeColors.Pine,
+          },
+        ];
       })
     );
   // public networkNodes = this.select("networkNodes");
