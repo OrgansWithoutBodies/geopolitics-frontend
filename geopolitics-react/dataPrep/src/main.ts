@@ -2,16 +2,15 @@ import axios from "axios";
 import { Command } from "commander";
 import figlet from "figlet";
 import fs from "fs";
+import { getQCodeNames } from "./buildQCodeQuery";
+import { buildQueryStringAndPost } from "./buildQuery";
 import { sleep } from "./sleep";
 import {
-  buildQueryStringAndPost,
   colonies,
   countries,
   dependentTerritories,
   disputedTerritories,
   geopoliticalGroups,
-  getQCodeNames,
-  independenceDeclarations,
   intergovernmentalOrganizations,
   internationalOrganizations,
   limitedRecognitionStates,
@@ -29,7 +28,7 @@ import {
   tradeBlocs,
   wars,
 } from "./wd.requests";
-import { QCode } from "./wd.types";
+import { QCode, QueryValueSpec } from "./wd.types";
 
 console.log(figlet.textSync("Data Builder"));
 
@@ -40,7 +39,7 @@ const errorLog = (details?: string) =>
 type AvailableQuery = {
   mainValue: `wd:${QCode<number>}`;
   includeSubclasses?: true;
-  query: Record<string, any>;
+  query: Readonly<QueryValueSpec[]>;
 };
 
 const availableQueries: Record<string, AvailableQuery> = {
@@ -60,7 +59,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   railways,
   disputedTerritories,
   limitedRecognitionStates,
-  independence: independenceDeclarations,
+  // independence: independenceDeclarations,
   parties,
   revolutions,
   tradeBlocs,
@@ -99,7 +98,7 @@ program
 
     for (const name of safeGet) {
       const data = await buildQueryStringAndPost(
-        Object.keys(availableQueries[name].query),
+        availableQueries[name].query.map((val) => val.valueKey),
         availableQueries[name].mainValue,
         availableQueries[name].query,
         availableQueries[name].includeSubclasses || false

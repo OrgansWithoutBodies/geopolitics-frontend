@@ -1,0 +1,8 @@
+export enum WDPCode {
+  SUBJECT_HAS_ROLE = "P2868",
+  HAS_PARTS = "P527",
+  INSTANCE_OF = "P31",
+  SUBCLASS_OF = "P279",
+  COORDINATE_LOCATION = "P625",
+  MEMBER_OF = "P463",
+}

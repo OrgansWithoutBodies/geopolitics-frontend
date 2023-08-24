@@ -66,9 +66,9 @@ export type JoinStringArray<
     : never
   : Acc;
 export type ReturnValKey<TCode extends string | number | symbol> =
-  TCode extends string ? `?${TCode}` : never;
-export type PCode<TCode extends number> = `P${TCode}`;
-export type QCode<TCode extends number> = `Q${TCode}`;
+  TCode extends string ? `${TCode}` : never;
+export type PCode<TCode extends number = number> = `P${TCode}`;
+export type QCode<TCode extends number = number> = `Q${TCode}`;
 // TODO probably can format request to avoid these, not sure how. 'Flavor'?
 export type CodeURI<
   TCode extends PCode<number> | QCode<number> = PCode<number> | QCode<number>
@@ -109,9 +109,11 @@ export type QueryValueSpec<
   // ORDER/LIMIT
   // FILTER
   // SERVICE
-  TJoinChar extends "." | ";" = "."
+  TJoinChar extends "." | ";" = ".",
+  TPrefix extends "wdt" | "pq" = "wdt" | "pq"
 > = {
   sourceKey: TSourceKey;
+  prefix: TPrefix;
   pCode: TPCode;
   valueKey: TValueKey;
   optional: TOptional;
@@ -119,7 +121,7 @@ export type QueryValueSpec<
 };
 export type QueryStringLiteralSpecLine<
   TSpec extends QueryValueSpec,
-  TContents extends string = `?${TSpec["sourceKey"]} wdt:${TSpec["pCode"]}${
+  TContents extends string = `?${TSpec["sourceKey"]} ${TSpec["prefix"]}:${TSpec["pCode"]}${
     // TODO add / & *
     ""
   } ${TSpec["valueKey"]} ${TSpec["joinChar"]}`
@@ -129,7 +131,7 @@ export type QueryStringLiteralSpecLine<
 // type MapValue<>=QueryStringLiteralSpecLine
 export type MapArrayOp<
   Keys extends readonly string[],
-  TMap extends { [key in Keys[number]]?: QueryValueSpec },
+  TMap extends QueryValueSpec[],
   Acc extends readonly string[] = []
 > = Keys extends readonly [infer Head, ...infer Rest]
   ? Head extends keyof TMap
@@ -152,13 +154,11 @@ export type QueryStringLiteralInstanceOf<
   TRefs extends Readonly<DBResults2NF>,
   TKeys extends Readonly<Partial<keyof TRefs>[]>,
   TValueKey extends `wd:${QCode<number>}` | ReturnValKey<TKeys[number]>,
-  TValueMaps extends {
-    [key in keyof TRefs]?: QueryValueSpec<
-      string,
-      PCode<number>,
-      `wd:${QCode<number>}` | ReturnValKey<keyof TRefs>
-    >;
-  },
+  TValueMaps extends QueryValueSpec<
+    string,
+    PCode<number>,
+    `wd:${QCode<number>}` | ReturnValKey<keyof TRefs>
+  >[],
   TMappedArray extends string[] = TKeys extends string[]
     ? MapArrayOp<TKeys, TValueMaps>
     : never,
@@ -178,13 +178,11 @@ export type QueryString<
   TRefs extends Readonly<DBResults2NF>,
   TKeys extends Readonly<Partial<keyof TRefs>[]>,
   TValueKey extends `wd:${QCode<number>}` | ReturnValKey<TKeys[number]>,
-  TValueMaps extends {
-    [key in keyof TRefs]?: QueryValueSpec<
-      string,
-      PCode<number>,
-      `wd:${QCode<number>}` | ReturnValKey<keyof TRefs>
-    >;
-  }
+  TValueMaps extends QueryValueSpec<
+    string,
+    PCode<number>,
+    `wd:${QCode<number>}` | ReturnValKey<keyof TRefs>
+  >[]
 > = QueryStringLiteralInstanceOf<TRefs, TKeys, TValueKey, TValueMaps> & {
   __expectedResults: TRefs;
 };
