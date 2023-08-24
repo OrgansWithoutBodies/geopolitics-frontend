@@ -9,6 +9,7 @@ import {
   countries,
   dependentTerritories,
   disputedTerritories,
+  geopoliticalGroups,
   getQCodeNames,
   independenceDeclarations,
   intergovernmentalOrganizations,
@@ -64,6 +65,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   revolutions,
   tradeBlocs,
   intergovernmentalOrganizations,
+  geopoliticalGroups,
   // hospitals,
   // unMemberStates,
 };

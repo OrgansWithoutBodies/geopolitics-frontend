@@ -12,6 +12,8 @@ import { CountryOutlines as DependentTerritoryOutlines } from "../../dataPrep/ou
 // import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/intergovernmentalOrganizations.qcodes.data";
 import { WDType as WDDependentTerritories } from "../../dataPrep/out/dependentTerritories.data";
 import { QCodes as WDDependentTerritoriesQCodes } from "../../dataPrep/out/dependentTerritories.qcodes.data";
+import { WDType as WDGeopoliticalGroups } from "../../dataPrep/out/geopoliticalGroups.data";
+import { QCodes as WDGeopoliticalGroupsQCodes } from "../../dataPrep/out/geopoliticalGroups.qcodes.data";
 // import { WDType as WDDisputedTerritories } from "../../dataPrep/out/disputedTerritories.data";
 // import { QCodes as WDDisputedTerritoriesQCodes } from "../../dataPrep/out/disputedTerritories.qcodes.data";
 import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
@@ -26,6 +28,7 @@ import type { TimeSpace } from "../types";
 
 export type NodeLookup = Record<NodeID, NetworkNode>;
 export type QCode<TNumber extends number = number> = `Q${TNumber}`;
+export type PCode<TNumber extends number = number> = `P${TNumber}`;
 
 export type CountryID = BrandedNumber<"CountryID">;
 type TimeStamp<
@@ -75,6 +78,8 @@ export interface DataState {
   tradeBlocsQCodes: typeof WDTradeBlocsQCodes;
 
   countries: CountryType[];
+  geopoliticalGroups: typeof WDGeopoliticalGroups;
+  geopoliticalGroupsQCodes: typeof WDGeopoliticalGroupsQCodes;
   countriesQCodes: Record<
     QCode<CountryID>,
     (typeof WDCountryQCodes)[keyof typeof WDCountryQCodes]
@@ -130,6 +135,8 @@ export function createInitialState(): DataState {
         },
       ])
     ),
+    geopoliticalGroups: WDGeopoliticalGroups,
+    geopoliticalGroupsQCodes: WDGeopoliticalGroupsQCodes,
     selectedNetworkNode: null,
     selectedCountry: null,
     internationalOrgs: WDInternationalOrg,

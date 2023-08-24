@@ -12,7 +12,7 @@ export const COLORS: HexString[] = [
   "#FF00FF",
   "#FF8800",
   "#777700",
-  // "#770077",
+  "#770077",
   "#00FFFF",
   "#7722FF",
 ];

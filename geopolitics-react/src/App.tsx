@@ -1,127 +1,40 @@
-import { ImperativePanelHandle } from "react-resizable-panels";
-
-import { useEffect, useRef, useState } from "react";
 import {
-  LinePlot,
   Network,
   NetworkNodeTemplate,
   NodesComponentProps,
   WorldMap,
 } from "react-konva-components/src";
-import { HexString, KonvaSpace, NodeID, TimeSpace } from "type-library";
-import { ArrV2 } from "type-library/src";
+import { KonvaSpace, NodeID, TimeSpace } from "type-library";
 import { Timeline } from "./Timeline";
-import { countryInfo } from "./countryData";
 import { dataService } from "./data/data.service";
-import { CountryID, QCode } from "./data/data.store";
-import { intersectSets, subtractSets } from "./intersectSets";
+import { CountryID, PCode, QCode } from "./data/data.store";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
-type CountryCode = (typeof countryInfo)[number]["alpha-3"];
-const allCountryCodes = countryInfo.map((val) => val["alpha-3"]);
 
+const COLUMN_1_WIDTH = 256 * 4;
+const COLUMN_2_WIDTH = 512;
+const MAP_HEIGHT = 580;
+const TIMELINE_HEIGHT = 110;
 type QCodeName = {
   qCode: QCode;
   name: string;
 };
-
+type PCodeName = {
+  pCode: PCode;
+  name: string;
+};
+const wikidataBaseURL = "https://www.wikidata.org/wiki/";
 function Q({ qCode, name }: QCodeName): JSX.Element {
-  return <a href={`https://www.wikidata.org/wiki/${qCode}`}>{name}</a>;
+  return <a href={`${wikidataBaseURL}${qCode}`}>{name}</a>;
 }
-// type HighlightRecord<TKey extends number> = Record<
-//   TKey,
-//   HighlightSpecification<TKey>
-// >;
+function P({ pCode, name }: PCodeName): JSX.Element {
+  return <a href={`${wikidataBaseURL}Property:${pCode}`}>{name}</a>;
+}
 
-// export function IntersectPartitions<
-//   TCountryCode extends number,
-//   TKeyA extends TCountryCode,
-//   TKeyB extends TCountryCode
-// >(
-//   partitionA: HighlightRecord<TKeyA>,
-//   partitionB: HighlightRecord<TKeyB>,
-//   nameA: Readonly<number> = 0,
-//   nameB: Readonly<number> = 1
-// ): HighlightRecord<
-//   `${TKeyA}-${TKeyB}` | `${typeof nameA}:${TKeyA}` | `${typeof nameB}:${TKeyB}`
-// > {
-//   const allPartitionA = Object.values(partitionA)
-//     .map(
-//       (val) =>
-//         (val as HighlightSpecification<TCountryCode>).highlightedCountries
-//     )
-//     .flat() as TCountryCode[];
-//   const allPartitionB = Object.values(partitionB)
-//     .map(
-//       (val) =>
-//         (val as HighlightSpecification<TCountryCode>).highlightedCountries
-//     )
-//     .flat() as TCountryCode[];
-
-//   const partitionsFromIntersections = Object.keys(partitionA)
-//     .map((valA) => {
-//       return Object.keys(partitionB).map((valB) => {
-//         return [
-//           `${valA}-${valB}`,
-//           {
-//             highlightedCountries: getIntersectionsBetween(
-//               valA,
-//               valB,
-//               partitionA,
-//               partitionB
-//             ),
-//             highlightColor: interpolateHexStrings(
-//               partitionA[valA as TKeyA].highlightColor,
-//               partitionB[valB as TKeyB].highlightColor
-//             ),
-//           },
-//         ];
-//       });
-//     })
-//     .flat();
-
-//   const entriesInAButNotB = Object.keys(partitionA).map((valA) => [
-//     `${nameA}:${valA}`,
-//     {
-//       highlightedCountries: getSubtraction(
-//         partitionA[valA as TKeyA].highlightedCountries as TKeyA[],
-//         allPartitionB
-//       ),
-//       highlightColor: partitionA[valA as TKeyA].highlightColor,
-//     },
-//   ]);
-//   const entriesInBButNotA = Object.keys(partitionB).map((valB) => [
-//     `${nameB}:${valB}`,
-//     {
-//       highlightedCountries: getSubtraction(
-//         partitionB[valB as TKeyB].highlightedCountries as TKeyB[],
-//         allPartitionA
-//       ),
-//       highlightColor: partitionB[valB as TKeyB].highlightColor,
-//     },
-//   ]);
-
-//   return Object.fromEntries([
-//     ...partitionsFromIntersections,
-//     ...entriesInAButNotB,
-//     ...entriesInBButNotA,
-//   ]);
-// }
+function WD(code: PCodeName | QCodeName): JSX.Element {
+  return "qCode" in code ? <Q {...code} /> : <P {...code} />;
+}
 function App() {
-  const timelinePanelRef = useRef<ImperativePanelHandle>(null);
-  useEffect(() => {
-    if (timelinePanelRef.current) {
-      // setPaneSize(timelinePanelRef.current.getSize());
-    }
-  }, [timelinePanelRef.current?.getSize]);
-  // const regionColorMap: RegionColorMap = {
-  //   Africa: "green",
-  //   Americas: "yellow",
-  //   Antarctica: "white",
-  //   Asia: "blue",
-  //   Europe: "cyan",
-  //   Oceania: "red",
-  // };
   const [
     {
       countryStarts,
@@ -139,6 +52,7 @@ function App() {
       bilateralRelations,
       countryHeartMap,
       nodeColorLookup,
+      countryColorLookup,
     },
   ] = useData([
     "countryHeartMap",
@@ -156,13 +70,30 @@ function App() {
     "countriesInSameTradeBloc",
     "renderableEventNetworkNodes",
     "selectedNetworkNode",
+    "countryColorLookup",
   ]);
+  const clipValueToRange = (
+    value: number,
+    { min, max }: { min: number; max: number }
+  ): number => {
+    return Math.min(Math.max(value, min), max);
+  };
+  const NetworkStageSize = {
+    x: COLUMN_2_WIDTH,
+    y: TIMELINE_HEIGHT + MAP_HEIGHT,
+  };
   const NodeTemplate: NodesComponentProps["NodeTemplate"] = ({ node }) => (
     <NetworkNodeTemplate
       onNodeMove={(updatingNode, event) =>
         dataService.moveNode(updatingNode, {
-          x: event.target.x() as KonvaSpace,
-          y: event.target.y() as KonvaSpace,
+          x: clipValueToRange(event.target.x(), {
+            min: 0,
+            max: NetworkStageSize.x,
+          }) as KonvaSpace,
+          y: clipValueToRange(event.target.y(), {
+            min: 0,
+            max: NetworkStageSize.y,
+          }) as KonvaSpace,
         })
       }
       highlightedNode={selectedCountry as any as NodeID | null}
@@ -178,28 +109,29 @@ function App() {
       //   setHighlightedNode(null);
       // }}
       node={node}
+      textLookup={countryToName}
     />
   );
 
   // const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const [highlightedPlot, setHighlightedPlot] = useState<number | null>(null);
+  // const [highlightedPlot, setHighlightedPlot] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (countriesInSameTradeBloc !== undefined) {
-      dataService.setNodesFromAdjMat(countriesInSameTradeBloc, {
-        width: COLUMN_2_WIDTH,
-        height: MAP_HEIGHT + TIMELINE_HEIGHT,
-      });
-      dataService.colorNetworkByCommunity(countriesInSameTradeBloc);
-    }
-  }, [countriesInSameTradeBloc]);
-  const COLUMN_1_WIDTH = 256 * 4;
-  const COLUMN_2_WIDTH = 512;
-  const MAP_HEIGHT = 580;
-  const TIMELINE_HEIGHT = 110;
+  // useEffect(() => {
+  //   if (countriesInSameTradeBloc !== undefined) {
+  //     dataService.setNodesFromAdjMat(countriesInSameTradeBloc, {
+  //       width: COLUMN_2_WIDTH,
+  //       height: MAP_HEIGHT + TIMELINE_HEIGHT,
+  //     });
+  //     dataService.colorNetworkByCommunity(countriesInSameTradeBloc);
+  //   }
+  // }, [countriesInSameTradeBloc]);
   const NetworkGeneratorObject: QCodeName = {
     qCode: "Q1129645",
     name: "Trade Bloc",
+  };
+  const InceptionProp: PCodeName = {
+    pCode: "P571",
+    name: "State Founding Events",
   };
 
   return (
@@ -207,99 +139,41 @@ function App() {
       <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>
         <div>DEMO APP</div>
         <p>
-          Map shows <Q {...{ qCode: "Q6256", name: "countries" }} /> &{" "}
-          <Q {...{ qCode: "Q161243", name: "dependent territories" }} />{" "}
-          (outlines from wikidata), shows timeline with all state founding
-          events.
+          Map shows <WD {...{ qCode: "Q6256", name: "countries" }} /> &{" "}
+          <WD {...{ qCode: "Q161243", name: "dependent territories" }} /> (
+          <WD {...{ pCode: "P3896", name: "outlines" }} /> from wikidata), shows
+          timeline with all <WD {...InceptionProp} />
         </p>
         <p>
-          If an entity is selected in one, it will also become selected in the
-          other
+          If an entity is selected in one widget, it will also become selected
+          in all other widgets
         </p>
         <p>Change Start Year & End Year to filter timeline </p>
         <p>
-          Timeline shows beginning of state, Network shows membership in same{" "}
+          Timeline shows beginning of state, Network shows{" "}
+          <WD {...{ pCode: "P527", name: "Membership" }} /> in same{" "}
           <Q {...NetworkGeneratorObject} /> (fairly random choice, mainly to
-          demonstrate community detection, handles any state membership object
-          trivially at this point just by replacing the wikidata QCode for{" "}
+          demonstrate community detection, handles any state{" "}
+          <WD {...{ pCode: "P527", name: "Membership" }} /> object trivially at
+          this point just by replacing the wikidata QCode for{" "}
           <Q {...NetworkGeneratorObject} /> with something else of the same
           shape)
         </p>
         <p>
           Network Node Color is arbitrary (other than yellow for selected node &
           gray on timeline for countries not included in network), indicates
-          automatic detection of membership in same connected network
+          automatic detection of{" "}
+          <WD {...{ pCode: "P527", name: "Membership" }} /> in same connected
+          network
         </p>
       </div>
       {filterYearsRenderReady !== undefined && (
-        <>
-          <div>
-            <p>START YEAR</p>
-            <button
-              onClick={() =>
-                dataService.setFilterEndpoint(
-                  "start",
-                  filterYearsNullSafe.start + 1 * MS_IN_YEAR
-                )
-              }
-            >
-              +
-            </button>
-            <input
-              value={filterYearsRenderReady.start}
-              onChange={(val) => {
-                dataService.setFilterEndpoint(
-                  "start",
-                  unoffsetDate(Number.parseInt(val.target.value) as TimeSpace)
-                );
-              }}
-            />
-            <button
-              onClick={() =>
-                dataService.setFilterEndpoint(
-                  "start",
-                  filterYearsNullSafe.start - 1 * MS_IN_YEAR
-                )
-              }
-            >
-              -
-            </button>
-          </div>
-          <div>
-            <p>END YEAR</p>
-            <button
-              onClick={() =>
-                dataService.setFilterEndpoint(
-                  "end",
-                  filterYearsNullSafe.end + 1 * MS_IN_YEAR
-                )
-              }
-            >
-              +
-            </button>
-            <input
-              value={filterYearsRenderReady.end}
-              onChange={(val) => {
-                dataService.setFilterEndpoint(
-                  "end",
-                  unoffsetDate(Number.parseInt(val.target.value) as TimeSpace)
-                );
-              }}
-            />
-            <button
-              onClick={() =>
-                dataService.setFilterEndpoint(
-                  "end",
-                  filterYearsNullSafe.end - 1 * MS_IN_YEAR
-                )
-              }
-            >
-              -
-            </button>
-          </div>
-        </>
+        <TimeFilter
+          filterYearsNullSafe={filterYearsNullSafe}
+          filterYearsRenderReady={filterYearsRenderReady}
+        />
       )}
-      <LinePlot
+      {/* <LinePlot
         stageSize={{ x: COLUMN_1_WIDTH, y: 200 }}
         data={[
           {
@@ -328,7 +202,7 @@ function App() {
           },
         }}
         onSelect={setHighlightedPlot}
-      />
+      /> */}
       {/* <SliderBar
         handlePercs={{ low: 0, high: 1 }}
         stageSize={{
@@ -350,15 +224,30 @@ function App() {
                   countries,
                   countryToName,
                   countryHeartMap,
-                  countryNodeColors: nodeColorLookup,
-                  countryLines: bilateralRelations,
+                  // countryNodeColors: nodeColorLookup,
+                  // countryLines: bilateralRelations,
                   onClick: (id) =>
                     dataService.setSelectedCountry(id as CountryID),
                   highlights: [
+                    countryColorLookup,
                     {
                       highlightColor: "#FFFF00",
                       highlightedCountries:
                         selectedCountry !== null ? [selectedCountry] : [],
+                    },
+                  ],
+                  labels: [
+                    {
+                      text: "BRICS",
+                      fontWeight: "bolder",
+                      fontSize: 20,
+                      position: { lat: 2.959788, lng: -140.47891 },
+                    },
+                    {
+                      text: `as of ${"24 August 2023"}`,
+                      fontWeight: "lighter",
+                      fontSize: 20,
+                      position: { lat: 2.959788, lng: -150.47891 },
                     },
                   ],
                 }}
@@ -384,10 +273,7 @@ function App() {
           <Network
             nodes={nodes}
             edges={edges}
-            stageSize={{
-              x: COLUMN_2_WIDTH,
-              y: TIMELINE_HEIGHT + MAP_HEIGHT,
-            }}
+            stageSize={NetworkStageSize}
             NodeTemplate={NodeTemplate}
           />
         )}
@@ -410,7 +296,15 @@ function App() {
         current data, eventually will need to implement better algorithm)
       </p>
       <p>
-        Network dragging choppy, interrupts drag (observable pattern problem)
+        Network dragging needs improving, flips back to original position
+        briefly when selected on mouse up
+      </p>
+      <p>
+        MouseUp in konva network gets interpreted as select on dragging - need
+        state machine
+      </p>
+      <p>
+        Figure out what to do with non-country entities in network (ignore?)
       </p>
       <p>
         Some founding events are doubled (how to ontologically handle secession
@@ -427,52 +321,105 @@ function App() {
       </p>
       <p>Need to figure out how to handle overlapping claims</p>
     </div>
-    // <div style={{ width: canvasSize.x, height: canvasSize.y }}>
-    //   <div className={styles.Container}>
     //     <PanelGroup direction="vertical">
     //       <Panel
     //         defaultSize={100}
     //         className={styles.Panel}
     //         ref={timelinePanelRef}
     //       >
-    //         <div className={styles.PanelContent}>
-    //           <Timeline stageSize={{ x: canvasSize.x, y: paneSize || 0 }} />
-    //         </div>
-    //         {/* TEST */}
-    //       </Panel>
-    //       <ResizeHandle />
-    //       <Panel className={styles.Panel}>
-    //         <div className={styles.PanelContent}>
-    //           <Network stageSize={{ x: canvasSize.x, y: paneSize || 0 }} />
-    //         </div>
-    //         {/* <Timeline /> */}
-    //         {/* <AddNewEvent /> */}
     //       </Panel>
     //     </PanelGroup>
-    //   </div>
-    // </div>
   );
 }
-export function getIntersectionsBetween<TCountryCode extends string>(
-  keyA: keyof typeof partitionA,
-  keyB: keyof typeof partitionB,
-  partitionA: Record<string, { highlightedCountries: TCountryCode[] }>,
-  partitionB: Record<string, { highlightedCountries: TCountryCode[] }>
-): CountryCode[] {
-  return [
-    ...intersectSets(
-      new Set(partitionA[keyA].highlightedCountries),
-      new Set(partitionB[keyB].highlightedCountries)
-    ),
-  ];
-}
-export function getSubtraction<TCountryCode extends string>(
-  aList: TCountryCode[],
-  subList: TCountryCode[]
-): TCountryCode[] {
-  return [
-    ...subtractSets(new Set(aList), new Set(subList), new Set(allCountryCodes)),
-  ];
+
+declare global {
+  interface ObjectConstructor {
+    keys<TKeys extends keyof unknown>(o: Record<TKeys, unknown>): TKeys[];
+    values<TValues>(o: Record<keyof unknown, TValues>): TValues[];
+  }
+
+  //   interface DateConstructor {
+  //     now(): Milliseconds;
+  //   }
 }
 
 export default App;
+function TimeFilter({
+  filterYearsRenderReady,
+  filterYearsNullSafe,
+}: {
+  filterYearsNullSafe: {
+    start: TimeSpace;
+    end: TimeSpace;
+  };
+  filterYearsRenderReady: { start: number; end: number };
+}) {
+  return (
+    <>
+      <div>
+        <p>START YEAR</p>
+        <button
+          onClick={() =>
+            dataService.setFilterEndpoint(
+              "start",
+              filterYearsNullSafe.start + 1 * MS_IN_YEAR
+            )
+          }
+        >
+          +
+        </button>
+        <input
+          value={filterYearsRenderReady.start}
+          onChange={(val) => {
+            dataService.setFilterEndpoint(
+              "start",
+              unoffsetDate(Number.parseInt(val.target.value) as TimeSpace)
+            );
+          }}
+        />
+        <button
+          onClick={() =>
+            dataService.setFilterEndpoint(
+              "start",
+              filterYearsNullSafe.start - 1 * MS_IN_YEAR
+            )
+          }
+        >
+          -
+        </button>
+      </div>
+      <div>
+        <p>END YEAR</p>
+        <button
+          onClick={() =>
+            dataService.setFilterEndpoint(
+              "end",
+              filterYearsNullSafe.end + 1 * MS_IN_YEAR
+            )
+          }
+        >
+          +
+        </button>
+        <input
+          value={filterYearsRenderReady.end}
+          onChange={(val) => {
+            dataService.setFilterEndpoint(
+              "end",
+              unoffsetDate(Number.parseInt(val.target.value) as TimeSpace)
+            );
+          }}
+        />
+        <button
+          onClick={() =>
+            dataService.setFilterEndpoint(
+              "end",
+              filterYearsNullSafe.end - 1 * MS_IN_YEAR
+            )
+          }
+        >
+          -
+        </button>
+      </div>
+    </>
+  );
+}

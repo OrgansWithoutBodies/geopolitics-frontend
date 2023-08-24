@@ -319,6 +319,19 @@ export const tradeBlocs = {
     },
   },
 } as const;
+export const geopoliticalGroups = {
+  mainValue: "wd:Q52110228",
+  includeSubclasses: true,
+  query: {
+    memberState: {
+      sourceKey: "item",
+      pCode: "P527",
+      valueKey: "?memberState",
+      joinChar: ".",
+      optional: false,
+    },
+  },
+} as const;
 export const intergovernmentalOrganizations = {
   mainValue: "wd:Q245065",
   includeSubclasses: true,

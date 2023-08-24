@@ -5,11 +5,12 @@ import {
   CountryHeartMap,
   CountryNameLookup,
   GeoJsonGeometryGeneric,
+  HighlightSpecification,
   HistoricalEvent,
   adjMatToRawNetwork,
   detectConnectedComponentsFromAdjMat,
 } from "react-konva-components/src";
-import { Observable, combineLatest, map } from "rxjs";
+import { Observable, combineLatest, debounceTime, map } from "rxjs";
 import { NetworkNode, RawNetwork, RenderableNetworkEdge } from "type-library";
 import type {
   HexString,
@@ -119,9 +120,27 @@ export class DataQuery extends Query<DataState> {
   }
   // TODO fully connected subcomponents
   private filterYears = this.select("filterYears");
-  private networkNodeRenderProps = this.select("networkNodeRenderProps");
+  private networkNodeRenderProps = this.select("networkNodeRenderProps").pipe(
+    // debounce sorta bandaid measure - avoids updating & breaking dragging state
+    // TODO - maybe drag state machine would take care of this? prob useful to just make it its own pkg
+    debounceTime(100)
+  );
   private unfilteredEvents = this.select("events");
+  public geopoliticalGroups = this.select("geopoliticalGroups");
 
+  public countryColorLookup: Observable<HighlightSpecification<CountryID>> =
+    this.geopoliticalGroups.pipe(
+      map((groups) => {
+        return {
+          highlightedCountries: groups
+            .filter(({ item }) => item.value === "Q243630")
+            .map(({ memberState }) =>
+              QCodeToCountryNumber(memberState.value as QCode<CountryID>)
+            ),
+          highlightColor: "#33FF77",
+        };
+      })
+    );
   // public networkNodes = this.select("networkNodes");
   // public adjMat: Observable<AdjacencyMatrix> = this.rawNetwork.pipe(
   //   map((network) => rawNetworkToAdjMat(network))
@@ -325,7 +344,7 @@ export class DataQuery extends Query<DataState> {
       })
     );
   public countryToName: Observable<CountryNameLookup<number>> = combineLatest([
-    this.existingCountries,
+    this.rawCountries,
     this.countriesQCodes,
   ]).pipe(
     map(([countries, countriesQCodes]) => {
@@ -439,8 +458,8 @@ export class DataQuery extends Query<DataState> {
         entryList.forEach((entry, ii) => {
           entryList.forEach((otherEntry, jj) => {
             if (jj > ii) {
-              tradeBlocMatrix[`${entry.replace("Q", "")}` as `${CountryID}`][
-                `${otherEntry.replace("Q", "")}` as `${CountryID}`
+              tradeBlocMatrix[QCodeToCountryCode(entry)][
+                QCodeToCountryCode(otherEntry)
               ] = 1;
             }
           });
@@ -546,21 +565,15 @@ export class DataQuery extends Query<DataState> {
         const bilateralRelations: BilateralRelation<CountryID>[] = [];
 
         Object.keys(objAdjMat).forEach((iiID) => {
-          Object.keys(objAdjMat[iiID as keyof typeof objAdjMat]).forEach(
-            (jjID) => {
-              if (
-                objAdjMat[iiID as keyof typeof objAdjMat][
-                  jjID as keyof typeof objAdjMat
-                ] === 1
-              ) {
-                bilateralRelations.push([
-                  Number.parseInt(iiID) as CountryID,
-                  Number.parseInt(jjID) as CountryID,
-                  1,
-                ]);
-              }
+          Object.keys(objAdjMat[iiID]).forEach((jjID) => {
+            if (objAdjMat[iiID][jjID] === 1) {
+              bilateralRelations.push([
+                Number.parseInt(iiID),
+                Number.parseInt(jjID),
+                1,
+              ]);
             }
-          );
+          });
         });
         return bilateralRelations;
       })
@@ -576,11 +589,9 @@ export class DataQuery extends Query<DataState> {
       map((communities) => {
         const lookup: Record<`${CountryID}`, HexString> = {};
         Object.keys(communities).forEach((key) => {
-          communities[Number.parseInt(key) as keyof typeof communities].forEach(
-            (country) => {
-              lookup[country] = COLORS[Number.parseInt(key) % COLORS.length];
-            }
-          );
+          communities[Number.parseInt(key)].forEach((country) => {
+            lookup[country] = COLORS[Number.parseInt(key) % COLORS.length];
+          });
         });
         return lookup;
         // return detectConnectedComponentsFromAdjMat(adjMat);
@@ -642,4 +653,15 @@ export class DataQuery extends Query<DataState> {
   //   map((objAdj) => objAdjToAdj(objAdj))
   // );
 }
+type CountryIDString<TCountryID extends CountryID> = `${TCountryID}`;
 export const dataQuery = new DataQuery(dataStore);
+function QCodeToCountryNumber<TCountryID extends CountryID>(
+  entry: QCode<TCountryID>
+): TCountryID {
+  return Number.parseInt(entry.replace("Q", ""));
+}
+function QCodeToCountryCode<TCountryID extends CountryID>(
+  entry: QCode<TCountryID>
+): CountryIDString<TCountryID> {
+  return `${QCodeToCountryNumber<TCountryID>(entry)}`;
+}
