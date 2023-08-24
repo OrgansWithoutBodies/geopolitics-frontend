@@ -212,3 +212,9 @@ export type WDPoliticalParty = FoldDBResults<
 // }
 // type Test = JoinStringArray<["a", "b", "c"], " . ">;
 // const test = ["a", "b", "c"].join(" . ");
+
+export type AvailableQuery = {
+  mainValue: `wd:${QCode<number>}`;
+  includeSubclasses?: true;
+  query: Readonly<QueryValueSpec[]>;
+};

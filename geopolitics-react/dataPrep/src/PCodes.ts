@@ -1,5 +1,6 @@
 export enum WDPCode {
   SUBJECT_HAS_ROLE = "P2868",
+  COUNTRY = "P17",
   HAS_PARTS = "P527",
   INSTANCE_OF = "P31",
   SUBCLASS_OF = "P279",

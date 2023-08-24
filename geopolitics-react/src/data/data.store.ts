@@ -5,15 +5,12 @@ import { NetworkNodeRenderProps } from "type-library/src";
 import { CountryOutlines } from "../../dataPrep/out/countries";
 import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
 import { QCodes as WDCountryQCodes } from "../../dataPrep/out/countries.qcodes.data";
-import { CountryOutlines as DependentTerritoryOutlines } from "../../dataPrep/out/dependentTerritories";
 // import { CountryOutlines as DisputedTerritoryOutlines } from "../../dataPrep/out/disputedTerritories";
 // import { CountryOutlines as LimitedRecognitionStatesOutlines } from "../../dataPrep/out/limitedRecognitionStates";
-// import { WDType as WDTradeBlocs } from "../../dataPrep/out/intergovernmentalOrganizations.data";
-// import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/intergovernmentalOrganizations.qcodes.data";
-import { WDType as WDDependentTerritories } from "../../dataPrep/out/dependentTerritories.data";
-import { QCodes as WDDependentTerritoriesQCodes } from "../../dataPrep/out/dependentTerritories.qcodes.data";
 import { WDType as WDGeopoliticalGroups } from "../../dataPrep/out/geopoliticalGroups.data";
 import { QCodes as WDGeopoliticalGroupsQCodes } from "../../dataPrep/out/geopoliticalGroups.qcodes.data";
+import { WDType as WDIntergovernmentalOrg } from "../../dataPrep/out/intergovernmentalOrganizations.data";
+import { QCodes as WDIntergovernmentalOrgQCodes } from "../../dataPrep/out/intergovernmentalOrganizations.qcodes.data";
 // import { WDType as WDDisputedTerritories } from "../../dataPrep/out/disputedTerritories.data";
 // import { QCodes as WDDisputedTerritoriesQCodes } from "../../dataPrep/out/disputedTerritories.qcodes.data";
 import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
@@ -66,15 +63,20 @@ export interface DataState {
   events: HistoricalEvent[];
   initialDateFilter: TimeSpace | null;
   finalDateFilter: TimeSpace | null;
-  internationalOrgs: typeof WDInternationalOrg;
   selectedCountry: CountryID | null;
   selectedNetworkNode: NodeID | null;
   filterYears: Record<"start" | "end", number | null>;
+  internationalOrgs: typeof WDInternationalOrg;
   internationalOrgsQCodes: typeof WDInternationalOrgQCodes;
+  intergovernmentalOrgs: typeof WDIntergovernmentalOrg;
+  intergovernmentalOrgsQCodes: typeof WDIntergovernmentalOrgQCodes;
   wars: typeof WDWar;
   warsQCodes: typeof WDWarQCodes;
   networkNodeRenderProps: Record<NodeID, NetworkNodeRenderProps>;
   tradeBlocs: typeof WDTradeBlocs;
+  selectedGeopoliticalGroup:
+    | (typeof WDTradeBlocs)[number]["item"]["value"]
+    | null;
   tradeBlocsQCodes: typeof WDTradeBlocsQCodes;
 
   countries: CountryType[];
@@ -141,29 +143,32 @@ export function createInitialState(): DataState {
     selectedCountry: null,
     internationalOrgs: WDInternationalOrg,
     internationalOrgsQCodes: WDInternationalOrgQCodes,
+    intergovernmentalOrgs: WDIntergovernmentalOrg,
+    intergovernmentalOrgsQCodes: WDIntergovernmentalOrgQCodes,
     wars: WDWar,
     warsQCodes: WDWarQCodes,
     countries: [
       ...new Set([
         ...(WDCountry as any as Readonly<CountryType[]>),
-        ...(WDDependentTerritories as any as Readonly<CountryType[]>),
+        // ...(WDDependentTerritories as any as Readonly<CountryType[]>),
         // ...(WDDisputedTerritories as any as Readonly<CountryType[]>),
         // ...(WDLimitedRecognitionStates as any as Readonly<CountryType[]>),
       ]),
     ],
     countriesQCodes: {
       ...WDCountryQCodes,
-      ...WDDependentTerritoriesQCodes,
+      // ...WDDependentTerritoriesQCodes,
       // ...WDDisputedTerritoriesQCodes,
       // ...WDLimitedRecognitionStatesQCodes,
     } as any,
     countriesOutlines: {
       ...CountryOutlines,
-      ...DependentTerritoryOutlines,
+      // ...DependentTerritoryOutlines,
       // ...DisputedTerritoryOutlines,
       // ...LimitedRecognitionStatesOutlines,
     } as any,
     tradeBlocs: WDTradeBlocs,
+    selectedGeopoliticalGroup: null,
     tradeBlocsQCodes: WDTradeBlocsQCodes,
     events: [],
     initialDateFilter: null,

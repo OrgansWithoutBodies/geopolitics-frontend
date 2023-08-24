@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Network,
   NetworkNodeTemplate,
@@ -8,15 +9,9 @@ import { KonvaSpace, NodeID, TimeSpace } from "type-library";
 import { Timeline } from "./Timeline";
 import { dataService } from "./data/data.service";
 import { CountryID, PCode, QCode } from "./data/data.store";
-import { themeColors } from "./theme";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 
-const RankedEntries = [
-  { label: "Member", color: themeColors.Pine },
-  { label: "Applicant", color: themeColors.Grass },
-  // { label: "Interested", color: themeColors.PaleGreen },
-];
 const COLUMN_1_WIDTH = 256 * 4;
 const COLUMN_2_WIDTH = 512;
 const MAP_HEIGHT = 580;
@@ -40,6 +35,11 @@ function P({ pCode, name }: PCodeName): JSX.Element {
 function WD(code: PCodeName | QCodeName): JSX.Element {
   return "qCode" in code ? <Q {...code} /> : <P {...code} />;
 }
+// TODO connect this to filtered time
+const today = new Date();
+const asOfDate = `${today.getDate()} ${today.toLocaleString("default", {
+  month: "long",
+})} ${today.getFullYear()}`;
 function App() {
   const [
     {
@@ -59,10 +59,18 @@ function App() {
       countryHeartMap,
       nodeColorLookup,
       countryColorLookup,
+      availableGroups,
+      cumulativeGroupsQCodes,
+      selectedGeopoliticalGroup,
+      visibleGroupings: RankedEntries,
     },
   ] = useData([
     "countryHeartMap",
+    "visibleGroupings",
     "countryToName",
+    "availableGroups",
+    "selectedGeopoliticalGroup",
+    "cumulativeGroupsQCodes",
     "bilateralRelations",
     "countryStarts",
     "countries",
@@ -78,6 +86,7 @@ function App() {
     "selectedNetworkNode",
     "countryColorLookup",
   ]);
+  console.log("TEST123-countryColorLookup", countryColorLookup);
   const clipValueToRange = (
     value: number,
     { min, max }: { min: number; max: number }
@@ -122,15 +131,15 @@ function App() {
   // const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   // const [highlightedPlot, setHighlightedPlot] = useState<number | null>(null);
 
-  // useEffect(() => {
-  //   if (countriesInSameTradeBloc !== undefined) {
-  //     dataService.setNodesFromAdjMat(countriesInSameTradeBloc, {
-  //       width: COLUMN_2_WIDTH,
-  //       height: MAP_HEIGHT + TIMELINE_HEIGHT,
-  //     });
-  //     dataService.colorNetworkByCommunity(countriesInSameTradeBloc);
-  //   }
-  // }, [countriesInSameTradeBloc]);
+  useEffect(() => {
+    if (countriesInSameTradeBloc !== undefined) {
+      dataService.setNodesFromAdjMat(countriesInSameTradeBloc, {
+        width: COLUMN_2_WIDTH,
+        height: MAP_HEIGHT + TIMELINE_HEIGHT,
+      });
+      dataService.colorNetworkByCommunity(countriesInSameTradeBloc);
+    }
+  }, [countriesInSameTradeBloc]);
   const NetworkGeneratorObject: QCodeName = {
     qCode: "Q1129645",
     name: "Trade Bloc",
@@ -155,6 +164,7 @@ function App() {
           in all other widgets
         </p>
         <p>Change Start Year & End Year to filter timeline </p>
+        <p>Map fill colors are based on </p>
         <p>
           Timeline shows beginning of state, Network shows{" "}
           <WD {...{ pCode: "P527", name: "Membership" }} /> in same{" "}
@@ -178,6 +188,22 @@ function App() {
           filterYearsNullSafe={filterYearsNullSafe}
           filterYearsRenderReady={filterYearsRenderReady}
         />
+      )}
+      {availableGroups && (
+        <p>
+          Grouping:
+          <select
+            onChange={(event) => {
+              console.log(event, event.target.value);
+              dataService.setSelectedGeopoliticalGroup(event.target.value);
+            }}
+          >
+            <option value={null}>---</option>
+            {availableGroups.map((group) => (
+              <option value={group}>{cumulativeGroupsQCodes[group]}</option>
+            ))}
+          </select>
+        </p>
       )}
       {/* <LinePlot
         stageSize={{ x: COLUMN_1_WIDTH, y: 200 }}
@@ -230,8 +256,8 @@ function App() {
                   countries,
                   countryToName,
                   countryHeartMap,
-                  // countryNodeColors: nodeColorLookup,
-                  // countryLines: bilateralRelations,
+                  countryNodeColors: nodeColorLookup,
+                  countryLines: bilateralRelations,
                   onClick: (id) =>
                     dataService.setSelectedCountry(id as CountryID),
                   highlights: [
@@ -242,39 +268,45 @@ function App() {
                     },
                     ...countryColorLookup,
                   ],
-                  labels: [
-                    {
-                      type: "text",
-                      text: "BRICS",
-                      fontWeight: "bolder",
-                      fontSize: 50,
-                      position: {
-                        lat: -10 - (RankedEntries.length - 0.5) * 10,
-                        lng: -140,
-                      },
-                    },
-                    {
-                      type: "text",
-                      text: `As of ${"24 August 2023"}`,
-                      fontWeight: "lighter",
-                      fontSize: 20,
-                      position: {
-                        lat: -10 - 15 - (RankedEntries.length - 0.5) * 10,
-                        lng: -140,
-                      },
-                    },
-                    ...RankedEntries.map((entry, ii) => {
-                      return {
-                        type: "colorbox",
-                        colorBox: entry.color,
-                        text: entry.label,
-                        fontWeight: "normal",
-                        fontSize: 20,
-                        colorBoxSize: 20,
-                        position: { lat: -10 - ii * 10, lng: -140 },
-                      } as const;
-                    }),
-                  ],
+                  labels:
+                    selectedGeopoliticalGroup === null
+                      ? []
+                      : [
+                          {
+                            type: "text",
+                            text: cumulativeGroupsQCodes[
+                              selectedGeopoliticalGroup
+                            ],
+                            fontWeight: "bolder",
+                            fontSize: 50,
+                            position: {
+                              lat: -10 - RankedEntries.length * 10,
+                              lng: -140,
+                            },
+                          },
+
+                          {
+                            type: "text",
+                            text: `As of ${asOfDate}`,
+                            fontWeight: "lighter",
+                            fontSize: 20,
+                            position: {
+                              lat: 0,
+                              lng: -140,
+                            },
+                          },
+                          ...RankedEntries.map((entry, ii) => {
+                            return {
+                              type: "colorbox",
+                              colorBox: entry.color,
+                              text: entry.label,
+                              fontWeight: "normal",
+                              fontSize: 20,
+                              colorBoxSize: 20,
+                              position: { lat: -10 - ii * 10, lng: -140 },
+                            } as const;
+                          }),
+                        ],
                 }}
               />
             </div>

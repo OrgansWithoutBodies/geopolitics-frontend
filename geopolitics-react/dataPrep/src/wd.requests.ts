@@ -1,4 +1,5 @@
-import { PCode, QCode } from "./wd.types";
+import { WDQCode } from "./QCodes";
+import { AvailableQuery, PCode, QCode } from "./wd.types";
 
 export const INSTANCE_OF = "P31" as const;
 export const SUBCLASS_OF = "P279" as const;
@@ -144,24 +145,6 @@ export const independenceDeclarations = {
     //   joinChar: ".",
     //   optional: true,
     // },
-  ],
-} as const;
-export const internationalOrganizations = {
-  // mutiny (Q511866)
-  // rebellion (Q124734)
-  // civil war (Q8465)
-  mainValue: "wd:Q484652",
-  // includeSubclasses: true,
-  query: [
-    {
-      sourceKey: "item",
-      prefix: "wdt",
-
-      pCode: "P527",
-      valueKey: "hasParts",
-      joinChar: ".",
-      optional: true,
-    },
   ],
 } as const;
 export const pmcs = {
@@ -324,23 +307,10 @@ export const dependentTerritories = stateActorObject("Q161243" as any);
 export const disputedTerritories = stateActorObject("Q15239622" as any);
 // state with limited recognition (Q15634554)
 export const limitedRecognitionStates = stateActorObject("Q15634554" as any);
-export const tradeBlocs = {
-  mainValue: "wd:Q1129645",
-  includeSubclasses: true,
-  query: [
-    {
-      sourceKey: "item",
-      prefix: "wdt",
-
-      pCode: "P527",
-      valueKey: "memberState",
-      joinChar: ".",
-      optional: false,
-    },
-  ],
-} as const;
-export const geopoliticalGroups = {
-  mainValue: "wd:Q52110228",
+export const multilateralOrganizationObject = (
+  code: QCode
+): AvailableQuery => ({
+  mainValue: `wd:${code}`,
   includeSubclasses: true,
   query: [
     {
@@ -350,6 +320,8 @@ export const geopoliticalGroups = {
       valueKey: "memberStateStatement",
       joinChar: ".",
       optional: false,
+      // TODO
+      // intermediate: true,
     },
     {
       sourceKey: "memberStateStatement",
@@ -368,22 +340,18 @@ export const geopoliticalGroups = {
       optional: true,
     },
   ],
-} as const;
-export const intergovernmentalOrganizations = {
-  mainValue: "wd:Q245065",
-  includeSubclasses: true,
-  query: [
-    {
-      sourceKey: "item",
-      prefix: "wdt",
+});
+export const tradeBlocs = multilateralOrganizationObject(WDQCode.TRADE_BLOCS);
+export const geopoliticalGroups = multilateralOrganizationObject(
+  WDQCode.GEOPOLITICAL_GROUPS
+);
+export const intergovernmentalOrganizations = multilateralOrganizationObject(
+  WDQCode.INTERGOVERNMENTAL_ORGANIZATIONS
+);
+export const internationalOrganizations = multilateralOrganizationObject(
+  WDQCode.INTERNATIONAL_ORGANIZATIONS
+);
 
-      pCode: "P527",
-      valueKey: "memberState",
-      joinChar: ".",
-      optional: false,
-    },
-  ],
-} as const;
 export const wars = {
   mainValue: "wd:Q198",
   includeSubclasses: true,

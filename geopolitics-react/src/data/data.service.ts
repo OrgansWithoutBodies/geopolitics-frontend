@@ -12,7 +12,7 @@ import type {
 } from "type-library/src";
 import { TimeSpace } from "../types";
 import { COLORS } from "./COLORS";
-import { CountryID, DataStore, dataStore } from "./data.store";
+import { CountryID, DataState, DataStore, dataStore } from "./data.store";
 
 export class DataService {
   public setInitialDateFilter(initialDateFilter: TimeSpace | null) {
@@ -78,6 +78,14 @@ export class DataService {
   public setHoveredNetworkNode(nodeID: NodeID) {
     this.dataStore.update((state) => {
       return { ...state, hoveredNetworkNode: nodeID };
+    });
+  }
+  public setSelectedGeopoliticalGroup(
+    group: DataState["selectedGeopoliticalGroup"]
+  ) {
+    console.log("TEST123-group", group);
+    this.dataStore.update((state) => {
+      return { ...state, selectedGeopoliticalGroup: group };
     });
   }
   public setNodesFromAdjMat(

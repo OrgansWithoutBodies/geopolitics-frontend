@@ -28,19 +28,13 @@ import {
   tradeBlocs,
   wars,
 } from "./wd.requests";
-import { QCode, QueryValueSpec } from "./wd.types";
+import { AvailableQuery, QCode } from "./wd.types";
 
 console.log(figlet.textSync("Data Builder"));
 
 const program = new Command();
 const errorLog = (details?: string) =>
   console.log("Sorry, something went wrong", details);
-
-type AvailableQuery = {
-  mainValue: `wd:${QCode<number>}`;
-  includeSubclasses?: true;
-  query: Readonly<QueryValueSpec[]>;
-};
 
 const availableQueries: Record<string, AvailableQuery> = {
   wars,

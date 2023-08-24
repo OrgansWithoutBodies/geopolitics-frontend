@@ -17,6 +17,7 @@ import type {
   ObjectAdjacencyMatrix,
   RenderableNetworkNode,
 } from "type-library/src";
+import { WDQCode } from "../../dataPrep/src/QCodes";
 import { periodIsSegmentGuard } from "../Timeline";
 import { themeColors } from "../theme";
 import { offsetDate } from "../timeTools";
@@ -41,6 +42,20 @@ import {
 } from "./data.store";
 
 export type BlocID = BrandedNumber<"BlocID">;
+
+export const MembershipStatusStyling = {
+  [WDQCode.MEMBER]: {
+    default: true,
+    color: themeColors.Pine,
+    label: "Member",
+  },
+  [WDQCode.APPLICANT]: {
+    color: themeColors.Grass,
+    label: "Applicant",
+  },
+  [WDQCode.OBSERVER]: { color: themeColors.PaleGreen, label: "Observer" },
+  [WDQCode.SUSPENDED]: { color: themeColors.Yellow, label: "Suspended" },
+};
 
 const getRandomColor = (): HexString => {
   // return "#FFFFFF";
@@ -126,36 +141,98 @@ export class DataQuery extends Query<DataState> {
     // TODO - maybe drag state machine would take care of this? prob useful to just make it its own pkg
     debounceTime(100)
   );
-  private unfilteredEvents = this.select("events");
-  public geopoliticalGroups = this.select("geopoliticalGroups");
+  public tradeBlocs = this.select("tradeBlocs");
+  public tradeBlocsQCodes = this.select("tradeBlocsQCodes");
 
-  public countryColorLookup: Observable<HighlightSpecification<CountryID>[]> =
-    this.geopoliticalGroups.pipe(
-      map((groups) => {
-        const relevantGroups = groups.filter(
-          ({ item }) => item.value === "Q243630"
-        );
-        return [
-          {
-            // currently (Aug 2023) only applicants have a membershipStatus tag
-            highlightedCountries: relevantGroups
-              .filter((group) => "membershipStatus" in group)
-              .map(({ memberState }) =>
-                QCodeToCountryNumber(memberState.value as QCode<CountryID>)
-              ),
-            highlightColor: themeColors.Grass,
-          },
-          {
-            highlightedCountries: relevantGroups
-              .filter((group) => !("membershipStatus" in group))
-              .map(({ memberState }) =>
-                QCodeToCountryNumber(memberState.value as QCode<CountryID>)
-              ),
-            highlightColor: themeColors.Pine,
-          },
-        ];
-      })
-    );
+  private unfilteredEvents = this.select("events");
+  public intergovernmentalOrgs = this.select("intergovernmentalOrgs");
+  public intergovernmentalOrgsQCodes = this.select(
+    "intergovernmentalOrgsQCodes"
+  );
+
+  public geopoliticalGroups = this.select("geopoliticalGroups");
+  public geopoliticalGroupsQCodes = this.select("geopoliticalGroupsQCodes");
+  public selectedGeopoliticalGroup = this.select("selectedGeopoliticalGroup");
+
+  public cumulativeGroups = combineLatest([
+    this.geopoliticalGroups,
+    this.tradeBlocs,
+    this.intergovernmentalOrgs,
+  ]).pipe(
+    map(([geopoliticalGroups, tradeBlocs, intergovernmentalOrgs]) => [
+      ...geopoliticalGroups,
+      ...tradeBlocs,
+      ...intergovernmentalOrgs,
+    ])
+  );
+  public cumulativeGroupsQCodes = combineLatest([
+    this.geopoliticalGroupsQCodes,
+    this.tradeBlocsQCodes,
+    this.intergovernmentalOrgsQCodes,
+  ]).pipe(
+    map(([geopoliticalGroups, tradeBlocs, intergovernmentalOrgs]) => ({
+      ...geopoliticalGroups,
+      ...tradeBlocs,
+      ...intergovernmentalOrgs,
+    }))
+  );
+  public availableGroups = this.cumulativeGroups.pipe(
+    map((groups) => [...new Set(groups.map((group) => group.item.value))])
+  );
+
+  public countryColorLookup: Observable<
+    (HighlightSpecification<CountryID> & {
+      status: keyof typeof MembershipStatusStyling;
+    })[]
+  > = combineLatest([
+    this.cumulativeGroups,
+    this.selectedGeopoliticalGroup,
+  ]).pipe(
+    map(([groups, selectedGroup]) => {
+      if (selectedGroup === null) {
+        return [];
+      }
+      const relevantGroups = groups.filter(
+        ({ item }) => item.value === selectedGroup
+      );
+      // TODO O(M*N here) where M is number of statuses - can do w one pass, after tests & benchmarks
+      return Object.keys(MembershipStatusStyling).map((status) => {
+        const styling = MembershipStatusStyling[status];
+        return {
+          highlightColor: styling.color,
+          highlightedCountries: [
+            ...new Set(
+              relevantGroups
+                .filter((element) => {
+                  const hasMembershipClause = "membershipStatus" in element;
+                  if ("default" in styling && styling.default === true) {
+                    return (
+                      !hasMembershipClause ||
+                      element.membershipStatus.value === (status as any)
+                    );
+                  }
+                  return (
+                    hasMembershipClause &&
+                    element.membershipStatus.value === (status as any)
+                  );
+                })
+                .map(({ memberState }) =>
+                  QCodeToCountryNumber(memberState.value as QCode<CountryID>)
+                )
+            ),
+          ],
+          status,
+        };
+      });
+    })
+  );
+  public visibleGroupings = this.countryColorLookup.pipe(
+    map((lookup) =>
+      lookup
+        .filter(({ highlightedCountries }) => highlightedCountries.length > 0)
+        .map(({ status }) => MembershipStatusStyling[status])
+    )
+  );
   // public networkNodes = this.select("networkNodes");
   // public adjMat: Observable<AdjacencyMatrix> = this.rawNetwork.pipe(
   //   map((network) => rawNetworkToAdjMat(network))
@@ -415,7 +492,6 @@ export class DataQuery extends Query<DataState> {
 
   // NETWORK STUFF
 
-  public tradeBlocs = this.select("tradeBlocs");
   public blocMemberships: Observable<
     Record<QCode<BlocID>, QCode<CountryID>[]>
   > = this.tradeBlocs.pipe(
@@ -440,35 +516,8 @@ export class DataQuery extends Query<DataState> {
   > = combineLatest([this.blocMemberships]).pipe(
     map(([blocMemberships]) => {
       const groupedBlocs = Object.values(blocMemberships);
-      const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
-      // const countryIndexFromQCodeLookup = Object.fromEntries(
-      //   uniqueEntitiesInTradeBlocs.map((entity, ii) => {
-      //     return [entity, ii] as [QCode<CountryID>, number];
-      //   })
-      // );
-      const QCodeFromCountryIndexLookup = Object.fromEntries(
-        uniqueEntitiesInTradeBlocs.map((entity, ii) => {
-          return [ii, entity] as [number, QCode<CountryID>];
-        })
-      );
       const tradeBlocMatrix: ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1> =
-        Object.fromEntries(
-          new Array(uniqueEntitiesInTradeBlocs.length).fill(0).map((_, ii) => [
-            numericalQCode({
-              item: { value: QCodeFromCountryIndexLookup[ii] },
-            }),
-            Object.fromEntries(
-              new Array(uniqueEntitiesInTradeBlocs.length)
-                .fill(0)
-                .map((_, jj) => [
-                  numericalQCode({
-                    item: { value: QCodeFromCountryIndexLookup[jj] },
-                  }),
-                  0,
-                ])
-            ),
-          ])
-        );
+        DataQuery.buildBlocMatrix(groupedBlocs);
       groupedBlocs.forEach((entryList) => {
         entryList.forEach((entry, ii) => {
           entryList.forEach((otherEntry, jj) => {
@@ -639,31 +688,316 @@ export class DataQuery extends Query<DataState> {
           return eventTime >= start && eventTime <= end;
         });
         return filteredCountries.map((country) => {
-          const startDate = country.stateStart.value;
-          const eventTime = new Date(startDate).getTime() as TimeSpace;
-          const positioner = DataQuery.buildEventPositioner(start, end);
-          const genericProps = {
-            id: numericalQCode(country) as EventID,
-            eventName: `Beginning of ${qCodes[country.item.value]}`,
-            eventInfo: "",
-            eventTime,
-          };
-          return {
-            ...genericProps,
-            renderedProps: {
-              // TODO no as any, same as overloading country & event id as same
-              color:
-                (selectedCountry as any) === (genericProps.id as any)
-                  ? "#FFFF00"
-                  : nodeColorLookup[`${genericProps.id as any}`] || "#AAAAAA",
-              position: positioner(genericProps),
-            },
-          };
+          return DataQuery.positionNode(
+            country,
+            start,
+            end,
+            qCodes,
+            selectedCountry,
+            nodeColorLookup
+          );
         });
       }
     )
   );
 
+  public static buildBlocMatrix(groupedBlocs: `Q${CountryID}`[][]) {
+    const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
+    // const countryIndexFromQCodeLookup = Object.fromEntries(
+    //   uniqueEntitiesInTradeBlocs.map((entity, ii) => {
+    //     return [entity, ii] as [QCode<CountryID>, number];
+    //   })
+    // );
+    const QCodeFromCountryIndexLookup = Object.fromEntries(
+      uniqueEntitiesInTradeBlocs.map((entity, ii) => {
+        return [ii, entity] as [number, QCode<CountryID>];
+      })
+    );
+    const tradeBlocMatrix: ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1> =
+      Object.fromEntries(
+        new Array(uniqueEntitiesInTradeBlocs.length).fill(0).map((_, ii) => [
+          numericalQCode({
+            item: { value: QCodeFromCountryIndexLookup[ii] },
+          }),
+          Object.fromEntries(
+            new Array(uniqueEntitiesInTradeBlocs.length)
+              .fill(0)
+              .map((_, jj) => [
+                numericalQCode({
+                  item: { value: QCodeFromCountryIndexLookup[jj] },
+                }),
+                0,
+              ])
+          ),
+        ])
+      );
+    return tradeBlocMatrix;
+  }
+
+  public static positionNode(
+    country: {
+      item: { type: "uri"; value: `Q${CountryID}` };
+      shape: {
+        type: "uri";
+        value: `http://commons.wikimedia.org/data/main/Data:${string}.map`;
+      };
+      stateStart: {
+        // for time period events just position tooltip in the middle
+        datatype: "http://www.w3.org/2001/XMLSchema#dateTime";
+        type: "literal";
+        value: `${number}-${number}-${number}T${number}:${number}:${number}Z`;
+      };
+      center: {
+        datatype: "http://www.opengis.net/ont/geosparql#wktLiteral";
+        type: "literal";
+        value: `Point(${number} ${number})`;
+      };
+      stateEnd: {
+        datatype: "http://www.w3.org/2001/XMLSchema#dateTime";
+        type: "literal";
+        value: `${number}-${number}-${number}T${number}:${number}:${number}Z`;
+      };
+    },
+    start: TimeSpace,
+    end: TimeSpace,
+    qCodes: Record<
+      `Q${CountryID}`,
+      | "Northern Mariana Islands"
+      | "Galicia"
+      | "Estonia"
+      | "Denmark"
+      | "Latvia"
+      | "Lithuania"
+      | "Sint Maarten"
+      | "Catalonia"
+      | "Aruba"
+      | "Greenland"
+      | "Cook Islands"
+      | "Faroe Islands"
+      | "Niue"
+      | "Saint Vincent and the Grenadines"
+      | "Sierra Leone"
+      | "Sudan"
+      | "Somalia"
+      | "Dominica"
+      | "Jamaica"
+      | "Afghanistan"
+      | "Honduras"
+      | "Grenada"
+      | "Gibraltar"
+      | "Guatemala"
+      | "Saint Lucia"
+      | "Dominican Republic"
+      | "Antigua and Barbuda"
+      | "Eswatini"
+      | "Saint Kitts and Nevis"
+      | "The Bahamas"
+      | "Thailand"
+      | "United Arab Emirates"
+      | "Mali"
+      | "Angola"
+      | "Bangladesh"
+      | "Vietnam"
+      | "Turkmenistan"
+      | "South Korea"
+      | "Israel"
+      | "Laos"
+      | "Jordan"
+      | "Lebanon"
+      | "Nicaragua"
+      | "Burkina Faso"
+      | "Pakistan"
+      | "Oman"
+      | "Malaysia"
+      | "Costa Rica"
+      | "Qatar"
+      | "Nepal"
+      | "Iran"
+      | "Haiti"
+      | "Lesotho"
+      | "Bhutan"
+      | "Saudi Arabia"
+      | "Central African Republic"
+      | "El Salvador"
+      | "Myanmar"
+      | "Comoros"
+      | "Zambia"
+      | "Cape Verde"
+      | "Botswana"
+      | "Zimbabwe"
+      | "Burundi"
+      | "Yemen"
+      | "Iraq"
+      | "Kyrgyzstan"
+      | "Maldives"
+      | "South Sudan"
+      | "Tajikistan"
+      | "Taiwan"
+      | "Syria"
+      | "Sri Lanka"
+      | "Mexico"
+      | "Austria"
+      | "Belarus"
+      | "Hungary"
+      | "Japan"
+      | "United Kingdom"
+      | "Ethiopia"
+      | "Republic of Ireland"
+      | "Bahrain"
+      | "Vanuatu"
+      | "Nauru"
+      | "Tuvalu"
+      | "New Zealand"
+      | "Bolivia"
+      | "Samoa"
+      | "Chad"
+      | "Czech Republic"
+      | "Trinidad and Tobago"
+      | "Slovakia"
+      | "Tonga"
+      | "Kazakhstan"
+      | "Papua New Guinea"
+      | "Singapore"
+      | "Mongolia"
+      | "Indonesia"
+      | "Iceland"
+      | "Palau"
+      | "Solomon Islands"
+      | "Federated States of Micronesia"
+      | "Kiribati"
+      | "Fiji"
+      | "East Timor"
+      | "Marshall Islands"
+      | "Uzbekistan"
+      | "Federal Islamic Republic of the Comoros"
+      | "Canada"
+      | "Norway"
+      | "Uganda"
+      | "Mauritius"
+      | "Niger"
+      | "Seychelles"
+      | "Malawi"
+      | "Rwanda"
+      | "Madagascar"
+      | "Kosovo"
+      | "São Tomé and Príncipe"
+      | "Kingdom of Iceland"
+      | "Northern Cyprus"
+      | "Spain"
+      | "Northern Ireland"
+      | "Belgium"
+      | "Finland"
+      | "Sweden"
+      | "Poland"
+      | "United States of America"
+      | "Luxembourg"
+      | "Portugal"
+      | "Turkey"
+      | "Switzerland"
+      | "Italy"
+      | "Greece"
+      | "Brazil"
+      | "People's Republic of China"
+      | "Uruguay"
+      | "Russia"
+      | "Kenya"
+      | "France"
+      | "Egypt"
+      | "Ghana"
+      | "Germany"
+      | "Philippines"
+      | "Brunei"
+      | "Tanzania"
+      | "Tunisia"
+      | "Togo"
+      | "Chile"
+      | "Australia"
+      | "Argentina"
+      | "Peru"
+      | "India"
+      | "Cambodia"
+      | "Armenia"
+      | "Benin"
+      | "Liechtenstein"
+      | "Algeria"
+      | "North Korea"
+      | "Romania"
+      | "Albania"
+      | "Bulgaria"
+      | "Ecuador"
+      | "Paraguay"
+      | "Venezuela"
+      | "Colombia"
+      | "Croatia"
+      | "Ukraine"
+      | "Slovenia"
+      | "Moldova"
+      | "Guyana"
+      | "North Macedonia"
+      | "Montenegro"
+      | "Eritrea"
+      | "Djibouti"
+      | "Republic of the Congo"
+      | "Democratic Republic of the Congo"
+      | "Equatorial Guinea"
+      | "Guinea"
+      | "Liberia"
+      | "Cameroon"
+      | "Libya"
+      | "Guinea-Bissau"
+      | "Gabon"
+      | "The Gambia"
+      | "Ivory Coast"
+      | "Senegal"
+      | "Morocco"
+      | "Nigeria"
+      | "Mauritania"
+      | "Namibia"
+      | "Mozambique"
+      | "Wales"
+      | "Netherlands"
+      | "Malta"
+      | "Cuba"
+      | "South Africa"
+      | "Cyprus"
+      | "Andorra"
+      | "Azerbaijan"
+      | "Bosnia and Herzegovina"
+      | "Kuwait"
+      | "Georgia"
+      | "Monaco"
+      | "San Marino"
+      | "Barbados"
+      | "Belize"
+      | "Vatican City"
+      | "Serbia"
+      | "Suriname"
+      | "Panama"
+    >,
+    selectedCountry: CountryID | null,
+    nodeColorLookup: Record<`${CountryID}`, `#${string}`>
+  ) {
+    const startDate = country.stateStart.value;
+    const eventTime = new Date(startDate).getTime() as TimeSpace;
+    const positioner = DataQuery.buildEventPositioner(start, end);
+    const genericProps = {
+      id: numericalQCode(country) as EventID,
+      eventName: `Beginning of ${qCodes[country.item.value]}`,
+      eventInfo: "",
+      eventTime,
+    };
+    return {
+      ...genericProps,
+      renderedProps: {
+        // TODO no as any, same as overloading country & event id as same
+        color:
+          (selectedCountry as any) === (genericProps.id as any)
+            ? "#FFFF00"
+            : nodeColorLookup[`${genericProps.id as any}`] || "#AAAAAA",
+        position: positioner(genericProps),
+      },
+    };
+  }
   // public adjMat:Observable<AdjMat> = this.countriesInSameTradeBloc.pipe(
   //   map((objAdj) => objAdjToAdj(objAdj))
   // );
