@@ -24,6 +24,8 @@ import { WDType as WDTradeBlocs } from "../../dataPrep/out/tradeBlocs.data";
 import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/tradeBlocs.qcodes.data";
 import { WDType as WDWar } from "../../dataPrep/out/wars.data";
 import { QCodes as WDWarQCodes } from "../../dataPrep/out/wars.qcodes.data";
+import { ValidatedTypes } from "../../dataPrep/src/buildQuery";
+import { LatLngObject, themeColors } from "../theme";
 import type { TimeSpace } from "../types";
 
 export type NodeLookup = Record<NodeID, NetworkNode>;
@@ -41,24 +43,21 @@ type TimeStamp<
 > = `${TY}-${TMon}-${TD}T${TH}:${TMin}:${TS}Z`;
 
 type CountryType = {
-  item: { type: "uri"; value: QCode<CountryID> };
+  item: { type: ValidatedTypes.QCode; value: QCode<CountryID> };
   shape: {
     type: "uri";
     value: `http://commons.wikimedia.org/data/main/Data:${string}.map`;
   };
+  center: {
+    type: ValidatedTypes.LatLng;
+    value: LatLngObject;
+  };
   stateStart: {
-    datatype: "http://www.w3.org/2001/XMLSchema#dateTime";
-    type: "literal";
+    type: ValidatedTypes.DateTime;
     value: TimeStamp;
   };
-  center: {
-    datatype: "http://www.opengis.net/ont/geosparql#wktLiteral";
-    type: "literal";
-    value: `Point(${number} ${number})`;
-  };
   stateEnd: {
-    datatype: "http://www.w3.org/2001/XMLSchema#dateTime";
-    type: "literal";
+    type: ValidatedTypes.DateTime;
     value: TimeStamp;
   };
 };
@@ -132,7 +131,7 @@ export function createInitialState(): DataState {
       ].map((country) => [
         numericalQCode({ item: { value: country } }) as NodeID,
         {
-          color: "#FF0000",
+          color: themeColors.R,
           position: {
             x: (Math.random() * 10) as KonvaSpace,
             y: (Math.random() * 10) as KonvaSpace,
@@ -152,10 +151,10 @@ export function createInitialState(): DataState {
     warsQCodes: WDWarQCodes,
     countries: [
       ...new Set([
-        ...(WDCountry as any as Readonly<CountryType[]>),
-        ...(WDDependentTerritories as any as Readonly<CountryType[]>),
-        ...(WDDisputedTerritories as any as Readonly<CountryType[]>),
-        ...(WDLimitedRecognitionStates as any as Readonly<CountryType[]>),
+        ...(WDCountry as any),
+        ...(WDDependentTerritories as any),
+        ...(WDDisputedTerritories as any),
+        ...(WDLimitedRecognitionStates as any),
       ]),
     ],
     countriesQCodes: {

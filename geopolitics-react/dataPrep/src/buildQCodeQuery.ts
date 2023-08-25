@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { defaultUrl } from "./buildQuery";
+import { wdLog } from "./main";
 import { QCode } from "./wd.types";
 
 export interface QCodeResult {
@@ -57,7 +58,7 @@ export async function getQCodeNames(qCodes: QCode<number>[], url = defaultUrl) {
     }
     currentResults = [...currentResults, ...result.data["results"]["bindings"]];
     currentChunk += 1;
-    console.log(`Got chunk ${currentChunk} of ${numChunks}`);
+    wdLog(`Got chunk ${currentChunk} of ${numChunks}`);
     // add a wait to prevent angering the wikidata gods
     await new Promise((r) => setTimeout(r, 1000));
   }

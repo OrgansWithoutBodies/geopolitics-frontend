@@ -3,7 +3,7 @@ import { Command } from "commander";
 import figlet from "figlet";
 import fs from "fs";
 import { getQCodeNames } from "./buildQCodeQuery";
-import { buildQueryStringAndPost } from "./buildQuery";
+import { ValidatedTypes, buildQueryStringAndPost } from "./buildQuery";
 import { sleep } from "./sleep";
 import {
   colonies,
@@ -11,6 +11,8 @@ import {
   dependentTerritories,
   disputedTerritories,
   geopoliticalGroups,
+  hospitals,
+  independenceDeclarations,
   intergovernmentalOrganizations,
   internationalOrganizations,
   limitedRecognitionStates,
@@ -29,8 +31,50 @@ import {
   wars,
 } from "./wd.requests";
 import { AvailableQuery, QCode } from "./wd.types";
+enum TerminalColors {
+  NC = "\x1b[0m",
+  "Default" = "\x1b[39m",
+  "Black" = "\x1b[30m",
+  "Dark red" = "\x1b[31m",
+  "Dark green" = "\x1b[32m",
+  "Dark yellow (Orange-ish)" = "\x1b[33m",
+  "Dark blue" = "\x1b[34m",
+  "Dark magenta" = "\x1b[35m",
+  "Dark cyan" = "\x1b[36m",
+  "Light gray" = "\x1b[37m",
+  "Dark gray" = "\x1b[90m",
+  "Red" = "\x1b[91m",
+  "Green" = "\x1b[92m",
+  "Orange" = "\x1b[93m",
+  "Blue" = "\x1b[94m",
+  "Magenta" = "\x1b[95m",
+  "Cyan" = "\x1b[96m",
+  "White" = "\x1b[97m",
+}
+enum TerminalWeights {
+  "Bold" = "\x1b[1m",
+}
 
-console.log(figlet.textSync("Data Builder"));
+function buildServiceLog(
+  serviceString: string,
+  color: TerminalColors,
+  args: Parameters<typeof console.log>
+) {
+  console.log(
+    `${TerminalWeights.Bold}[${color}${serviceString}${TerminalColors.NC}]${TerminalWeights.Bold}::${TerminalColors.NC}${args[0]}`,
+    args[1]
+  );
+}
+
+export function wdLog(...args: Parameters<typeof console.log>) {
+  buildServiceLog("WD", TerminalColors.Red, args);
+}
+console.log(
+  `${TerminalWeights.Bold}${TerminalColors.Green}${figlet.textSync(
+    "Data Builder"
+  )}${TerminalColors.NC}`
+);
+const MS_IN_SEC = 1000;
 
 const program = new Command();
 const errorLog = (details?: string) =>
@@ -40,7 +84,6 @@ const availableQueries: Record<string, AvailableQuery> = {
   wars,
   military: militaryAlliances,
   pmcs,
-  countries,
   colonies,
   rocks,
   metals,
@@ -48,146 +91,54 @@ const availableQueries: Record<string, AvailableQuery> = {
   newsAgencies,
   mines,
   regimeChanges,
-  internationalOrganizations,
-  dependentTerritories,
   railways,
-  disputedTerritories,
-  limitedRecognitionStates,
-  // independence: independenceDeclarations,
+  independence: independenceDeclarations,
   parties,
   revolutions,
+  hospitals,
+  countries,
+  internationalOrganizations,
+  dependentTerritories,
+  disputedTerritories,
+  limitedRecognitionStates,
   tradeBlocs,
   intergovernmentalOrganizations,
   geopoliticalGroups,
-  // hospitals,
   // unMemberStates,
 };
-
 const intersectSets = (a: Set<any>, b: Set<any>) =>
   new Set([...a].filter((i) => b.has(i)));
 program
   .version("1.0.0")
   //   TODO come up w better name ('OpenGeoPolitics'?)
   .description("A CLI for building data for geopolitics app")
-  .option("-w, --wd  [value...]", "Get data from wikidata", undefined)
+  .option("-w, --wd  [value]", "Get data from wikidata", undefined)
   .action(async ({ wd }) => {
     if (wd === undefined) {
-      console.log("Please supply a query name, or '*' to get all");
+      wdLog("Please supply a query name, or '*' to get all");
       return;
     }
-    console.log("Connecting to WikiData...", wd);
     // make sure we can connect before trying anything
     const safeGet =
-      wd === "*" || wd === true ? Object.keys(availableQueries) : wd;
-    if (
-      !intersectSets(
-        new Set([...Object.keys(availableQueries)]),
-        new Set([...safeGet])
-      ).size === safeGet.length
-    ) {
-      errorLog("Invalid Query Choice");
-      return;
-    }
-    console.log("Query: ", safeGet, availableQueries[safeGet]);
+      wd === "*" || wd === true ? Object.keys(availableQueries) : [wd];
+    // TODO
+    // if (
+    //   !intersectSets(
+    //     new Set([...Object.keys(availableQueries)]),
+    //     new Set([...safeGet])
+    //   ).size === safeGet.length
+    // ) {
+    //   errorLog("Invalid Query Choice");
+    //   return;
+    // }
+    wdLog("Preparing WikiData Requests...", safeGet);
 
     for (const name of safeGet) {
-      const data = await buildQueryStringAndPost(
-        availableQueries[name].query
-          .filter((val) => !val.intermediate)
-          .map((val) => val.valueKey),
-        availableQueries[name].mainValue,
-        availableQueries[name].query,
-        availableQueries[name].includeSubclasses || false
+      wdLog(
+        "Running",
+        `${TerminalColors.Orange}${TerminalWeights.Bold}${name}${TerminalColors.NC}`
       );
-
-      if (data === null) {
-        errorLog();
-        return;
-      }
-      fs.writeFile(
-        `out/${name}.data.ts`,
-        `export const WDType = ${JSON.stringify(data.validatedData)} as const;`,
-        (err) => console.log(err)
-      );
-
-      const qCodes: QCode<number>[] = [];
-      data.validatedData.forEach((val) =>
-        Object.keys(val).forEach((key) => {
-          const element = val[key];
-          // TODO very sloppy
-          if (
-            key !== "territoryClaimedBy" &&
-            element["type"] === "uri" &&
-            (element["value"] as string).startsWith("Q")
-          ) {
-            // TODO no need to save datatype val
-            // TODO coords to tuple
-            // TODO make this typesafer
-            qCodes.push(element["value"] as QCode<number>);
-          }
-        })
-      );
-      console.log(qCodes);
-      const qCodeQueryResults = await getQCodeNames([...new Set(qCodes)]);
-      if (qCodeQueryResults === null) {
-        errorLog();
-        return;
-      }
-
-      // TODO joint qcode file?
-
-      console.log("TEST123", qCodeQueryResults);
-      fs.writeFile(
-        `out/${name}.qcodes.data.ts`,
-        `export const QCodes = ${JSON.stringify(qCodeQueryResults)} as const;`,
-        (err) => console.log(err)
-      );
-
-      // TODO formulate this better - this is where outlines come from
-      if (
-        name === "countries" ||
-        name === "limitedRecognitionStates" ||
-        name === "dependentTerritories" ||
-        name === "disputedTerritories"
-      ) {
-        if (!fs.existsSync(`out/${name}`)) {
-          fs.mkdirSync(`out/${name}`);
-        }
-        fs.writeFileSync(
-          `out/${name}/index.ts`,
-          `${Object.keys(qCodeQueryResults)
-            .map((qcode) => {
-              return `import ${qcode} from './${qcode}.outline.data.json';`;
-            })
-            .join("\n")}\nexport const CountryOutlines = {${Object.keys(
-            qCodeQueryResults
-          ).join(",")}}`
-        );
-
-        for (const country of data.validatedData) {
-          const MS_IN_SEC = 1000;
-          const countryOutlineURL = (country.shape as { value: string }).value
-            .split("+")
-            .join("%20");
-          if (
-            !fs.existsSync(
-              `out/${name}/${country.item.value}.outline.data.json`
-            )
-          ) {
-            await sleep(2 * MS_IN_SEC);
-            const countryResult = await axios.get(countryOutlineURL, {});
-            if (!(countryResult["status"] === 200)) {
-              // return null;
-              throw new Error();
-            }
-            fs.writeFile(
-              `out/${name}/${country.item.value}.outline.data.json`,
-              `${JSON.stringify(countryResult.data.data)}`,
-              (err) => console.log(err)
-            );
-          }
-        }
-      }
+      await runWDForSingleQuery(name);
     }
   })
   // .option("-s, --sip  [filePath]", "Parse SIPRI file", undefined)
@@ -311,3 +262,98 @@ program
 // type QCodes = typeof WDType[number][keyof typeof WDType[number]]["value"] &
 //   QCode<number>;
 // const options = program.opts();
+async function runWDForSingleQuery(name: string) {
+  const data = await buildQueryStringAndPost(
+    availableQueries[name].query
+      .filter((val) => !val.intermediate)
+      .map((val) => val.valueKey),
+    availableQueries[name].mainValue,
+    availableQueries[name].query,
+    availableQueries[name].includeSubclasses || false
+  );
+
+  if (data === null) {
+    errorLog();
+    return;
+  }
+  fs.writeFile(
+    `out/${name}.data.ts`,
+    `export const WDType = ${JSON.stringify(data.validatedData)} as const;`,
+    (err) => wdLog("Error Writing Data File", err)
+  );
+
+  const qCodes: QCode<number>[] = [];
+  data.validatedData.forEach((val) =>
+    Object.keys(val).forEach((key) => {
+      const element = val[key];
+      // TODO very sloppy
+      if (
+        key !== "territoryClaimedBy" &&
+        element["type"] === ValidatedTypes.QCode
+      ) {
+        // TODO no need to save datatype val
+        // TODO coords to tuple
+        // TODO make this typesafer
+        qCodes.push(element["value"] as QCode<number>);
+      }
+    })
+  );
+  // console.log(qCodes);
+  const qCodeQueryResults = await getQCodeNames([...new Set(qCodes)]);
+  if (qCodeQueryResults === null) {
+    errorLog();
+    return;
+  }
+
+  // TODO joint qcode file?
+
+  // console.log("TEST123", qCodeQueryResults);
+  fs.writeFile(
+    `out/${name}.qcodes.data.ts`,
+    `export const QCodes = ${JSON.stringify(qCodeQueryResults)} as const;`,
+    (err) => wdLog("Error Writing QCode Data File", err)
+  );
+
+  // TODO formulate this better - this is where outlines come from
+  if (
+    name === "countries" ||
+    name === "limitedRecognitionStates" ||
+    name === "dependentTerritories" ||
+    name === "disputedTerritories"
+  ) {
+    if (!fs.existsSync(`out/${name}`)) {
+      fs.mkdirSync(`out/${name}`);
+    }
+    fs.writeFileSync(
+      `out/${name}/index.ts`,
+      `${Object.keys(qCodeQueryResults)
+        .map((qcode) => {
+          return `import ${qcode} from './${qcode}.outline.data.json';`;
+        })
+        .join("\n")}\nexport const CountryOutlines = {${Object.keys(
+        qCodeQueryResults
+      ).join(",")}}`
+    );
+
+    for (const country of data.validatedData) {
+      const countryOutlineURL = (country.shape as { value: string }).value
+        .split("+")
+        .join("%20");
+      if (
+        !fs.existsSync(`out/${name}/${country.item.value}.outline.data.json`)
+      ) {
+        await sleep(2 * MS_IN_SEC);
+        const countryResult = await axios.get(countryOutlineURL, {});
+        if (!(countryResult["status"] === 200)) {
+          // return null;
+          throw new Error();
+        }
+        fs.writeFile(
+          `out/${name}/${country.item.value}.outline.data.json`,
+          `${JSON.stringify(countryResult.data.data)}`,
+          (err) => wdLog("Error Writing Outline Data File", err)
+        );
+      }
+    }
+  }
+}

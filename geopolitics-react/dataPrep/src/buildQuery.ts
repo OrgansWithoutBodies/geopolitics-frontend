@@ -1,5 +1,6 @@
 import axios, { HttpStatusCode } from "axios";
 import { WDPCode } from "./PCodes";
+import { wdLog } from "./main";
 import {
   CodeURI,
   DBResults2NF,
@@ -9,6 +10,7 @@ import {
   QueryString,
   QueryValueSpec,
   ReturnValKey,
+  WikiDataPointLatLng,
 } from "./wd.types";
 
 // TODO map query to result validator
@@ -72,9 +74,9 @@ type WDDTTZResponseElement = WDResponseElement<
 >;
 type WDIdRefResponseElement = WDResponseElement<"uri", CodeURI>;
 type WDURLResponseElement = WDResponseElement<"uri", `https://${string}`>;
-type LatLonString<
-  TLatLon extends { lat: number; lon: number } = { lat: number; lon: number }
-> = `Point(${TLatLon["lon"]} ${TLatLon["lat"]})`;
+export type LatLngObject = { lat: number; lng: number };
+type LatLonString<TLatLon extends LatLngObject = LatLngObject> =
+  `Point(${TLatLon["lng"]} ${TLatLon["lat"]})`;
 type CoordinateResponseElement = WDResponseElement<
   "literal",
   LatLonString,
@@ -192,7 +194,7 @@ export async function buildQueryStringAndPost<
     includeSubclasses
   );
 
-  console.log("TEST123", builtStr);
+  // console.log("TEST123", builtStr);
   const result: RawResponseFromWD<TRefs, TKeys> = await axios.get(url, {
     params: { query: builtStr, format: "json" },
   });
@@ -204,13 +206,15 @@ export async function buildQueryStringAndPost<
   if (!resultIsOk(result)) {
     return null;
   }
+  wdLog("Got Result...");
   const validatedData = ValidateDataContents(result);
   return { validatedData, result };
 }
-enum ValidatedTypes {
+export enum ValidatedTypes {
   QCode = "QCode",
   DateTime = "DateTime",
   Number = "Number",
+  LatLng = "LatLng",
 }
 
 function ValidateDataContents<
@@ -225,14 +229,7 @@ function ValidateDataContents<
       Object.entries(val).map(([kk, vv]) => {
         const [k, v] = [kk, vv] as [string, WDResponseElement];
         if (vIsQCode(v)) {
-          const splitVal = (v["value"] as string).split("/");
-          return [
-            k,
-            {
-              value: splitVal[splitVal.length - 1],
-              type: ValidatedTypes.QCode,
-            },
-          ];
+          return parseQCode(v, k);
         }
         if (vIsNumber(v as any)) {
           return [k, { value: v.value, type: ValidatedTypes.Number }];
@@ -241,13 +238,47 @@ function ValidateDataContents<
         if (vIsDateTime(v as any)) {
           return [k, { value: v.value, type: ValidatedTypes.DateTime }];
         }
+        if (vIsLatLng(v as any)) {
+          return parseLatLng(v as any, k);
+        }
         return [k, v];
       })
     )
   );
-
-  // return array(object<Struct<TDatum>>({}));
 }
+function parseQCode(
+  v: { type: AllowedWDTypes; value: unknown; datatype: null },
+  k: string
+) {
+  const splitVal = (v["value"] as string).split("/");
+  return [
+    k,
+    {
+      value: splitVal[splitVal.length - 1],
+      type: ValidatedTypes.QCode,
+    },
+  ];
+}
+
+// TODO
+function parseLatLng(
+  v: { type: AllowedWDTypes; value: WikiDataPointLatLng; datatype: null },
+  k: string
+) {
+  const [lat, lng] = v.value.replace("Point(", "").replace(")", "").split(" ");
+
+  return [
+    k,
+    {
+      value: {
+        lat: Number.parseFloat(lat),
+        lng: Number.parseFloat(lng),
+      },
+      type: ValidatedTypes.LatLng,
+    },
+  ];
+}
+
 export function vIsQCode(v: {
   type: AllowedWDTypes;
   value: unknown;
@@ -276,6 +307,16 @@ export function vIsDateTime(v: {
   return (
     v["type"] === "literal" &&
     v["datatype"] === "http://www.w3.org/2001/XMLSchema#dateTime"
+  );
+}
+export function vIsLatLng(v: {
+  type: AllowedWDTypes;
+  value: unknown;
+  datatype: string;
+}) {
+  return (
+    v["type"] === "literal" &&
+    v["datatype"] === "http://www.opengis.net/ont/geosparql#wktLiteral"
   );
 }
 // type Test = JoinStringArray<

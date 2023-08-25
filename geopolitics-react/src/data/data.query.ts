@@ -34,6 +34,7 @@ import type {
 import { COLORS } from "./COLORS";
 import {
   CountryID,
+  CountryType,
   DataState,
   DataStore,
   QCode,
@@ -53,7 +54,7 @@ export const MembershipStatusStyling = {
     color: themeColors.Grass,
     label: "Applicant",
   },
-  [WDQCode.OBSERVER]: { color: themeColors.PaleGreen, label: "Observer" },
+  [WDQCode.OBSERVER]: { color: themeColors.Pistachio, label: "Observer" },
   [WDQCode.SUSPENDED]: { color: themeColors.Sand, label: "Suspended" },
 };
 
@@ -384,15 +385,15 @@ export class DataQuery extends Query<DataState> {
       });
     })
   );
-  public countryLifeExpectancyLookup = this.existingCountries.pipe(
-    map((countries) => {
-      countries
-        .filter((country) => "lifeExpectancy" in country)
-        .map((country) => {
-          [country.lifeExpectancy, country.lifeExpectancyTime];
-        });
-    })
-  );
+  // public countryLifeExpectancyLookup = this.existingCountries.pipe(
+  //   map((countries) => {
+  //     countries
+  //       .filter((country) => "lifeExpectancy" in country)
+  //       .map((country) => {
+  //         return [country.lifeExpectancy, country.lifeExpectancyTime];
+  //       });
+  //   })
+  // );
   // private rawWars = this.select("wars");
   // public tradeBlocs = this.select("tradeBloc");
   private countryOutlines = this.select("countriesOutlines");
@@ -634,18 +635,14 @@ export class DataQuery extends Query<DataState> {
       map((countries) => {
         return Object.fromEntries(
           countries.map((country) => {
-            // Point(-63.067777777 18.031944444)
-            const [lat, lon] = country.center.value
-              .replace("Point(", "")
-              .replace(")", "")
-              .split(" ");
+            const { lat, lng } = country.center.value;
             return [
               numericalQCode(country),
               {
                 type: "Point",
                 geometry: {
                   type: "Point",
-                  coordinates: [Number.parseFloat(lat), Number.parseFloat(lon)],
+                  coordinates: [lat, lng],
                 },
               },
             ];
@@ -765,29 +762,7 @@ export class DataQuery extends Query<DataState> {
   }
 
   public static positionNode(
-    country: {
-      item: { type: "uri"; value: `Q${CountryID}` };
-      shape: {
-        type: "uri";
-        value: `http://commons.wikimedia.org/data/main/Data:${string}.map`;
-      };
-      stateStart: {
-        // for time period events just position tooltip in the middle
-        datatype: "http://www.w3.org/2001/XMLSchema#dateTime";
-        type: "literal";
-        value: `${number}-${number}-${number}T${number}:${number}:${number}Z`;
-      };
-      center: {
-        datatype: "http://www.opengis.net/ont/geosparql#wktLiteral";
-        type: "literal";
-        value: `Point(${number} ${number})`;
-      };
-      stateEnd: {
-        datatype: "http://www.w3.org/2001/XMLSchema#dateTime";
-        type: "literal";
-        value: `${number}-${number}-${number}T${number}:${number}:${number}Z`;
-      };
-    },
+    country: CountryType,
     start: TimeSpace,
     end: TimeSpace,
     qCodes: Record<
