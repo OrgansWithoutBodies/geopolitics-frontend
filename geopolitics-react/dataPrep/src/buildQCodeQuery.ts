@@ -13,7 +13,9 @@ export interface QCodeResult {
     value: string;
   };
 }
-export function ValidateQCodes(results: QCodeResult[]) {
+export function ValidateQCodes(results: QCodeResult[]): {
+  [k: string]: string;
+} {
   return Object.fromEntries(
     results.map((val) => {
       const splitVal = val["item"]["value"].split("/");

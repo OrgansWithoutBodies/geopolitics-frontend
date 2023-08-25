@@ -1,5 +1,5 @@
 import axios, { HttpStatusCode } from "axios";
-import { INSTANCE_OF, SUBCLASS_OF } from "./wd.requests";
+import { WDPCode } from "./PCodes";
 import {
   CodeURI,
   DBResults2NF,
@@ -144,8 +144,8 @@ function buildFinalQuery<
     .join(" ") as JoinStringArray<TKeys, " ?", "?">;
   return `SELECT ?item ${returnKeys}
     WHERE {
-      ?item wdt:${INSTANCE_OF}${
-    includeSubclasses ? `/wdt:${SUBCLASS_OF}*` : ""
+      ?item wdt:${WDPCode.INSTANCE_OF}${
+    includeSubclasses ? `/wdt:${WDPCode.SUBCLASS_OF}*` : ""
   } ${mainValueKey} .
       ${filterLines}
     }` as QueryString<TRefs, TKeys, TValueKey, TValueMaps>;
@@ -207,8 +207,12 @@ export async function buildQueryStringAndPost<
   const validatedData = ValidateDataContents(result);
   return { validatedData, result };
 }
-// make sure no formatting has changed since last run, if so complain on compile
-//
+enum ValidatedTypes {
+  QCode = "QCode",
+  DateTime = "DateTime",
+  Number = "Number",
+}
+
 function ValidateDataContents<
   TRefs extends DBResults2NF,
   TKeys extends (keyof TRefs)[],
@@ -222,7 +226,20 @@ function ValidateDataContents<
         const [k, v] = [kk, vv] as [string, WDResponseElement];
         if (vIsQCode(v)) {
           const splitVal = (v["value"] as string).split("/");
-          return [k, { ...v, value: splitVal[splitVal.length - 1] }];
+          return [
+            k,
+            {
+              value: splitVal[splitVal.length - 1],
+              type: ValidatedTypes.QCode,
+            },
+          ];
+        }
+        if (vIsNumber(v as any)) {
+          return [k, { value: v.value, type: ValidatedTypes.Number }];
+        }
+        // TODO differentiate Year vs day of year vs date with time vs ... ?
+        if (vIsDateTime(v as any)) {
+          return [k, { value: v.value, type: ValidatedTypes.DateTime }];
         }
         return [k, v];
       })
@@ -239,6 +256,26 @@ export function vIsQCode(v: {
   return (
     v["type"] === "uri" &&
     (v["value"] as string).startsWith("http://www.wikidata.org/entity/Q")
+  );
+}
+export function vIsNumber(v: {
+  type: AllowedWDTypes;
+  value: unknown;
+  datatype: string;
+}) {
+  return (
+    v["type"] === "literal" &&
+    v["datatype"] === "http://www.w3.org/2001/XMLSchema#decimal"
+  );
+}
+export function vIsDateTime(v: {
+  type: AllowedWDTypes;
+  value: unknown;
+  datatype: string;
+}) {
+  return (
+    v["type"] === "literal" &&
+    v["datatype"] === "http://www.w3.org/2001/XMLSchema#dateTime"
   );
 }
 // type Test = JoinStringArray<

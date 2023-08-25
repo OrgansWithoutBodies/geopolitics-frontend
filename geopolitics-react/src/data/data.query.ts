@@ -54,7 +54,7 @@ export const MembershipStatusStyling = {
     label: "Applicant",
   },
   [WDQCode.OBSERVER]: { color: themeColors.PaleGreen, label: "Observer" },
-  [WDQCode.SUSPENDED]: { color: themeColors.Yellow, label: "Suspended" },
+  [WDQCode.SUSPENDED]: { color: themeColors.Sand, label: "Suspended" },
 };
 
 const getRandomColor = (): HexString => {
@@ -141,14 +141,18 @@ export class DataQuery extends Query<DataState> {
     // TODO - maybe drag state machine would take care of this? prob useful to just make it its own pkg
     debounceTime(100)
   );
+  private unfilteredEvents = this.select("events");
+
   public tradeBlocs = this.select("tradeBlocs");
   public tradeBlocsQCodes = this.select("tradeBlocsQCodes");
 
-  private unfilteredEvents = this.select("events");
   public intergovernmentalOrgs = this.select("intergovernmentalOrgs");
   public intergovernmentalOrgsQCodes = this.select(
     "intergovernmentalOrgsQCodes"
   );
+
+  public internationalOrgs = this.select("internationalOrgs");
+  public internationalOrgsQCodes = this.select("internationalOrgsQCodes");
 
   public geopoliticalGroups = this.select("geopoliticalGroups");
   public geopoliticalGroupsQCodes = this.select("geopoliticalGroupsQCodes");
@@ -158,23 +162,41 @@ export class DataQuery extends Query<DataState> {
     this.geopoliticalGroups,
     this.tradeBlocs,
     this.intergovernmentalOrgs,
+    this.internationalOrgs,
   ]).pipe(
-    map(([geopoliticalGroups, tradeBlocs, intergovernmentalOrgs]) => [
-      ...geopoliticalGroups,
-      ...tradeBlocs,
-      ...intergovernmentalOrgs,
-    ])
+    map(
+      ([
+        geopoliticalGroups,
+        tradeBlocs,
+        intergovernmentalOrgs,
+        internationalOrgs,
+      ]) => [
+        ...geopoliticalGroups,
+        ...tradeBlocs,
+        ...intergovernmentalOrgs,
+        ...internationalOrgs,
+      ]
+    )
   );
   public cumulativeGroupsQCodes = combineLatest([
     this.geopoliticalGroupsQCodes,
     this.tradeBlocsQCodes,
     this.intergovernmentalOrgsQCodes,
+    this.internationalOrgsQCodes,
   ]).pipe(
-    map(([geopoliticalGroups, tradeBlocs, intergovernmentalOrgs]) => ({
-      ...geopoliticalGroups,
-      ...tradeBlocs,
-      ...intergovernmentalOrgs,
-    }))
+    map(
+      ([
+        geopoliticalGroups,
+        tradeBlocs,
+        intergovernmentalOrgs,
+        internationalOrgsQCodes,
+      ]) => ({
+        ...geopoliticalGroups,
+        ...tradeBlocs,
+        ...intergovernmentalOrgs,
+        ...internationalOrgsQCodes,
+      })
+    )
   );
   public availableGroups = this.cumulativeGroups.pipe(
     map((groups) => [...new Set(groups.map((group) => group.item.value))])
@@ -221,7 +243,7 @@ export class DataQuery extends Query<DataState> {
                 )
             ),
           ],
-          status,
+          status: status as any,
         };
       });
     })
@@ -362,7 +384,15 @@ export class DataQuery extends Query<DataState> {
       });
     })
   );
-
+  public countryLifeExpectancyLookup = this.existingCountries.pipe(
+    map((countries) => {
+      countries
+        .filter((country) => "lifeExpectancy" in country)
+        .map((country) => {
+          [country.lifeExpectancy, country.lifeExpectancyTime];
+        });
+    })
+  );
   // private rawWars = this.select("wars");
   // public tradeBlocs = this.select("tradeBloc");
   private countryOutlines = this.select("countriesOutlines");

@@ -110,13 +110,15 @@ export type QueryValueSpec<
   // FILTER
   // SERVICE
   TJoinChar extends "." | ";" = ".",
-  TPrefix extends "wdt" | "pq" | "p" | "ps" = "wdt" | "pq" | "p" | "ps"
+  TPrefix extends "wdt" | "pq" | "p" | "ps" = "wdt" | "pq" | "p" | "ps",
+  TIntermediate extends boolean = boolean
 > = {
   sourceKey: TSourceKey;
   prefix: TPrefix;
   pCode: TPCode;
   valueKey: TValueKey;
   optional: TOptional;
+  intermediate?: TIntermediate;
   joinChar: TJoinChar;
 };
 export type QueryStringLiteralSpecLine<
@@ -215,6 +217,6 @@ export type WDPoliticalParty = FoldDBResults<
 
 export type AvailableQuery = {
   mainValue: `wd:${QCode<number>}`;
-  includeSubclasses?: true;
+  includeSubclasses?: boolean;
   query: Readonly<QueryValueSpec[]>;
 };

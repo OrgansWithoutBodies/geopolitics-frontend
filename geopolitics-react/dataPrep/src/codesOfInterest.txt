@@ -340,3 +340,25 @@ Health • Obituaries • Politics and conflicts • Science and technology • 
 
 
 SIPRI https://www.sipri.org/databases
+
+// military action (Q15835236)
+// drone attack (Q30588142)
+// airstrike (Q2380335)
+// military strike (Q6857862)
+// participant (P710)
+// object has role (P3831)
+// perpetrator (Q18028810)
+// sourcing circumstances (P1480)
+// military operation plan (Q149377)
+// state (former or current) (Q96196009)
+// facet of (P1269)
+// republic (Q7270)
+// contains the administrative territorial entity (P150)
+// history of Lithuania (Q215063)
+// target (P533)
+  // mutiny (Q511866)
+  // rebellion (Q124734)
+  // civil war (Q8465)
+
+Q55978503
+Q22997934

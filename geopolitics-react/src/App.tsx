@@ -6,9 +6,10 @@ import {
   WorldMap,
 } from "react-konva-components/src";
 import { KonvaSpace, NodeID, TimeSpace } from "type-library";
+import { WDQCode } from "../dataPrep/src/QCodes";
 import { Timeline } from "./Timeline";
 import { dataService } from "./data/data.service";
-import { CountryID, PCode, QCode } from "./data/data.store";
+import { CountryID, DataState, PCode, QCode } from "./data/data.store";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 
@@ -141,7 +142,7 @@ function App() {
     }
   }, [countriesInSameTradeBloc]);
   const NetworkGeneratorObject: QCodeName = {
-    qCode: "Q1129645",
+    qCode: WDQCode.TRADE_BLOCS,
     name: "Trade Bloc",
   };
   const InceptionProp: PCodeName = {
@@ -151,38 +152,12 @@ function App() {
 
   return (
     <div>
-      <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>
-        <div>DEMO APP</div>
-        <p>
-          Map shows <WD {...{ qCode: "Q6256", name: "countries" }} /> &{" "}
-          <WD {...{ qCode: "Q161243", name: "dependent territories" }} /> (
-          <WD {...{ pCode: "P3896", name: "outlines" }} /> from wikidata), shows
-          timeline with all <WD {...InceptionProp} />
-        </p>
-        <p>
-          If an entity is selected in one widget, it will also become selected
-          in all other widgets
-        </p>
-        <p>Change Start Year & End Year to filter timeline </p>
-        <p>Map fill colors are based on </p>
-        <p>
-          Timeline shows beginning of state, Network shows{" "}
-          <WD {...{ pCode: "P527", name: "Membership" }} /> in same{" "}
-          <Q {...NetworkGeneratorObject} /> (fairly random choice, mainly to
-          demonstrate community detection, handles any state{" "}
-          <WD {...{ pCode: "P527", name: "Membership" }} /> object trivially at
-          this point just by replacing the wikidata QCode for{" "}
-          <Q {...NetworkGeneratorObject} /> with something else of the same
-          shape)
-        </p>
-        <p>
-          Network Node Color is arbitrary (other than yellow for selected node &
-          gray on timeline for countries not included in network), indicates
-          automatic detection of{" "}
-          <WD {...{ pCode: "P527", name: "Membership" }} /> in same connected
-          network
-        </p>
-      </div>
+      {
+        <Preamble
+          InceptionProp={InceptionProp}
+          NetworkGeneratorObject={NetworkGeneratorObject}
+        />
+      }
       {filterYearsRenderReady !== undefined && (
         <TimeFilter
           filterYearsNullSafe={filterYearsNullSafe}
@@ -195,10 +170,13 @@ function App() {
           <select
             onChange={(event) => {
               console.log(event, event.target.value);
-              dataService.setSelectedGeopoliticalGroup(event.target.value);
+              dataService.setSelectedGeopoliticalGroup(
+                event.target.value as DataState["selectedGeopoliticalGroup"]
+              );
             }}
           >
-            <option value={null}>---</option>
+            {/* TODO any */}
+            <option value={null as any}>---</option>
             {availableGroups.map((group) => (
               <option value={group}>{cumulativeGroupsQCodes[group]}</option>
             ))}
@@ -326,14 +304,15 @@ function App() {
             />
           )}
         </div>
-        {true && (
+        {
+          // TODO be able to have a multimodal network - ie put countries & multilateral orgs in same network (diff shape - star?)
           <Network
             nodes={nodes}
             edges={edges}
             stageSize={NetworkStageSize}
             NodeTemplate={NodeTemplate}
           />
-        )}
+        }
       </div>
       <p />
       <div>
@@ -401,6 +380,66 @@ declare global {
 }
 
 export default App;
+function Preamble({
+  InceptionProp,
+  NetworkGeneratorObject,
+}: {
+  InceptionProp: PCodeName;
+  NetworkGeneratorObject: QCodeName;
+}) {
+  return (
+    <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>
+      <div>DEMO APP</div>
+      <p>
+        Map shows <WD {...{ qCode: "Q6256", name: "countries" }} /> &{" "}
+        <WD {...{ qCode: "Q161243", name: "dependent territories" }} /> (
+        <WD {...{ pCode: "P3896", name: "outlines" }} /> from wikidata), shows
+        timeline with all <WD {...InceptionProp} />
+      </p>
+      <p>
+        If an entity is selected in one widget, it will also become selected in
+        all other widgets
+      </p>
+      <p>Change Start Year & End Year to filter timeline </p>
+      <p>
+        Map fill colors are based on membership of grouping selected from
+        dropdown (currently can choose between{" "}
+        <WD {...NetworkGeneratorObject} />,{" "}
+        <WD
+          {...{
+            qCode: WDQCode.GEOPOLITICAL_GROUPS,
+            name: "geopolitical groups",
+          }}
+        />{" "}
+        &{" "}
+        <WD
+          {...{
+            qCode: WDQCode.INTERGOVERNMENTAL_ORGANIZATIONS,
+            name: "intergovernmental organizations",
+          }}
+        />
+        )
+      </p>
+      <p>
+        Timeline shows beginning of state, Network shows{" "}
+        <WD {...{ pCode: "P527", name: "Membership" }} /> in same{" "}
+        <WD {...NetworkGeneratorObject} /> (fairly random choice, mainly to
+        demonstrate community detection, handles any state{" "}
+        <WD {...{ pCode: "P527", name: "Membership" }} /> object trivially at
+        this point just by replacing the wikidata QCode for{" "}
+        <WD {...NetworkGeneratorObject} /> with something else of the same
+        shape)
+      </p>
+      <p>
+        Network Node Color is arbitrary (other than yellow for selected node &
+        gray on timeline for countries not included in network), indicates
+        automatic detection of <WD {...{ pCode: "P527", name: "Membership" }} />{" "}
+        in same connected network
+      </p>
+    </div>
+  );
+}
+
 function TimeFilter({
   filterYearsRenderReady,
   filterYearsNullSafe,

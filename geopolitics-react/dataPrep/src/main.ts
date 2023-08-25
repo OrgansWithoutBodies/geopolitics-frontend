@@ -92,7 +92,9 @@ program
 
     for (const name of safeGet) {
       const data = await buildQueryStringAndPost(
-        availableQueries[name].query.map((val) => val.valueKey),
+        availableQueries[name].query
+          .filter((val) => !val.intermediate)
+          .map((val) => val.valueKey),
         availableQueries[name].mainValue,
         availableQueries[name].query,
         availableQueries[name].includeSubclasses || false
@@ -110,8 +112,11 @@ program
 
       const qCodes: QCode<number>[] = [];
       data.validatedData.forEach((val) =>
-        Object.values(val).forEach((element) => {
+        Object.keys(val).forEach((key) => {
+          const element = val[key];
+          // TODO very sloppy
           if (
+            key !== "territoryClaimedBy" &&
             element["type"] === "uri" &&
             (element["value"] as string).startsWith("Q")
           ) {
@@ -123,14 +128,15 @@ program
         })
       );
       console.log(qCodes);
-      const qCodeQueryResults = await getQCodeNames(qCodes);
+      const qCodeQueryResults = await getQCodeNames([...new Set(qCodes)]);
       if (qCodeQueryResults === null) {
         errorLog();
         return;
       }
 
-      // TODO joint qcode file
+      // TODO joint qcode file?
 
+      console.log("TEST123", qCodeQueryResults);
       fs.writeFile(
         `out/${name}.qcodes.data.ts`,
         `export const QCodes = ${JSON.stringify(qCodeQueryResults)} as const;`,

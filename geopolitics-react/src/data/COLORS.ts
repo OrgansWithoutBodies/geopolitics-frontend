@@ -1,18 +1,14 @@
 import { HexString } from "type-library";
+import { themeColors } from "../theme";
 
-// declare global {
-//   interface Object {
-//     keys: (val: unknown) => (keyof typeof val)[];
-//   }
-// }
 export const COLORS: HexString[] = [
-  "#FF0000",
-  "#00FF00",
-  "#0000FF",
-  "#FF00FF",
-  "#FF8800",
-  "#777700",
-  "#770077",
-  "#00FFFF",
-  "#7722FF",
+  themeColors.R,
+  themeColors.G,
+  themeColors.B,
+  themeColors.C,
+  themeColors.M,
+  themeColors.Tangerine,
+  themeColors.Taupenade,
+  themeColors.Wine,
+  themeColors.Grape,
 ];

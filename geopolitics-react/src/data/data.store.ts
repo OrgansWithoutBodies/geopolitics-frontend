@@ -5,18 +5,21 @@ import { NetworkNodeRenderProps } from "type-library/src";
 import { CountryOutlines } from "../../dataPrep/out/countries";
 import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
 import { QCodes as WDCountryQCodes } from "../../dataPrep/out/countries.qcodes.data";
-// import { CountryOutlines as DisputedTerritoryOutlines } from "../../dataPrep/out/disputedTerritories";
-// import { CountryOutlines as LimitedRecognitionStatesOutlines } from "../../dataPrep/out/limitedRecognitionStates";
+import { CountryOutlines as DependentTerritoriesOutlines } from "../../dataPrep/out/dependentTerritories";
+import { WDType as WDDependentTerritories } from "../../dataPrep/out/dependentTerritories.data";
+import { QCodes as WDDependentTerritoriesQCodes } from "../../dataPrep/out/dependentTerritories.qcodes.data";
+import { CountryOutlines as DisputedTerritoryOutlines } from "../../dataPrep/out/disputedTerritories";
+import { WDType as WDDisputedTerritories } from "../../dataPrep/out/disputedTerritories.data";
+import { QCodes as WDDisputedTerritoriesQCodes } from "../../dataPrep/out/disputedTerritories.qcodes.data";
 import { WDType as WDGeopoliticalGroups } from "../../dataPrep/out/geopoliticalGroups.data";
 import { QCodes as WDGeopoliticalGroupsQCodes } from "../../dataPrep/out/geopoliticalGroups.qcodes.data";
 import { WDType as WDIntergovernmentalOrg } from "../../dataPrep/out/intergovernmentalOrganizations.data";
 import { QCodes as WDIntergovernmentalOrgQCodes } from "../../dataPrep/out/intergovernmentalOrganizations.qcodes.data";
-// import { WDType as WDDisputedTerritories } from "../../dataPrep/out/disputedTerritories.data";
-// import { QCodes as WDDisputedTerritoriesQCodes } from "../../dataPrep/out/disputedTerritories.qcodes.data";
 import { WDType as WDInternationalOrg } from "../../dataPrep/out/internationalOrganizations.data";
 import { QCodes as WDInternationalOrgQCodes } from "../../dataPrep/out/internationalOrganizations.qcodes.data";
-// import { WDType as WDLimitedRecognitionStates } from "../../dataPrep/out/limitedRecognitionStates.data";
-// import { QCodes as WDLimitedRecognitionStatesQCodes } from "../../dataPrep/out/limitedRecognitionStates.qcodes.data";
+import { CountryOutlines as LimitedRecognitionStatesOutlines } from "../../dataPrep/out/limitedRecognitionStates";
+import { WDType as WDLimitedRecognitionStates } from "../../dataPrep/out/limitedRecognitionStates.data";
+import { QCodes as WDLimitedRecognitionStatesQCodes } from "../../dataPrep/out/limitedRecognitionStates.qcodes.data";
 import { WDType as WDTradeBlocs } from "../../dataPrep/out/tradeBlocs.data";
 import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/tradeBlocs.qcodes.data";
 import { WDType as WDWar } from "../../dataPrep/out/wars.data";
@@ -150,22 +153,22 @@ export function createInitialState(): DataState {
     countries: [
       ...new Set([
         ...(WDCountry as any as Readonly<CountryType[]>),
-        // ...(WDDependentTerritories as any as Readonly<CountryType[]>),
-        // ...(WDDisputedTerritories as any as Readonly<CountryType[]>),
-        // ...(WDLimitedRecognitionStates as any as Readonly<CountryType[]>),
+        ...(WDDependentTerritories as any as Readonly<CountryType[]>),
+        ...(WDDisputedTerritories as any as Readonly<CountryType[]>),
+        ...(WDLimitedRecognitionStates as any as Readonly<CountryType[]>),
       ]),
     ],
     countriesQCodes: {
       ...WDCountryQCodes,
-      // ...WDDependentTerritoriesQCodes,
-      // ...WDDisputedTerritoriesQCodes,
-      // ...WDLimitedRecognitionStatesQCodes,
+      ...WDDependentTerritoriesQCodes,
+      ...WDDisputedTerritoriesQCodes,
+      ...WDLimitedRecognitionStatesQCodes,
     } as any,
     countriesOutlines: {
       ...CountryOutlines,
-      // ...DependentTerritoryOutlines,
-      // ...DisputedTerritoryOutlines,
-      // ...LimitedRecognitionStatesOutlines,
+      ...DependentTerritoriesOutlines,
+      ...DisputedTerritoryOutlines,
+      ...LimitedRecognitionStatesOutlines,
     } as any,
     tradeBlocs: WDTradeBlocs,
     selectedGeopoliticalGroup: null,
