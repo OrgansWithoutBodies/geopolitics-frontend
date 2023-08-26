@@ -14,6 +14,7 @@ export const demoQuerySpec = {
     },
   ],
 } as const;
+
 describe("Query String Builder", () => {
   it("matches snapshot", () => {
     const keyList = demoQuerySpec.query.map((val) => val.valueKey);

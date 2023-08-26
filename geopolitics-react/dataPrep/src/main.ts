@@ -2,8 +2,15 @@ import axios from "axios";
 import { Command } from "commander";
 import figlet from "figlet";
 import fs from "fs";
+import { ArrV2 } from "type-library/src";
 import { getQCodeNames } from "./buildQCodeQuery";
-import { ValidatedTypes, buildQueryStringAndPost } from "./buildQuery";
+import {
+  ValidatedTypes,
+  buildQueryStringAndPost,
+  wikiDataGeoShapeBaseURL,
+  wikiDataGeoShapeSuffix,
+} from "./buildQuery";
+import { differentiate } from "./geomPrep";
 import { sleep } from "./sleep";
 import {
   colonies,
@@ -21,6 +28,7 @@ import {
   minerals,
   mines,
   newsAgencies,
+  newspaper,
   parties,
   pmcs,
   railways,
@@ -31,6 +39,7 @@ import {
   wars,
 } from "./wd.requests";
 import { AvailableQuery, QCode } from "./wd.types";
+
 enum TerminalColors {
   NC = "\x1b[0m",
   "Default" = "\x1b[39m",
@@ -88,6 +97,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   rocks,
   metals,
   minerals,
+  newspaper,
   newsAgencies,
   mines,
   regimeChanges,
@@ -106,8 +116,8 @@ const availableQueries: Record<string, AvailableQuery> = {
   geopoliticalGroups,
   // unMemberStates,
 };
-const intersectSets = (a: Set<any>, b: Set<any>) =>
-  new Set([...a].filter((i) => b.has(i)));
+// const intersectSets = (a: Set<any>, b: Set<any>) =>
+//   new Set([...a].filter((i) => b.has(i)));
 program
   .version("1.0.0")
   //   TODO come up w better name ('OpenGeoPolitics'?)
@@ -321,39 +331,66 @@ async function runWDForSingleQuery(name: string) {
     name === "dependentTerritories" ||
     name === "disputedTerritories"
   ) {
-    if (!fs.existsSync(`out/${name}`)) {
-      fs.mkdirSync(`out/${name}`);
-    }
-    fs.writeFileSync(
-      `out/${name}/index.ts`,
-      `${Object.keys(qCodeQueryResults)
-        .map((qcode) => {
-          return `import ${qcode} from './${qcode}.outline.data.json';`;
-        })
-        .join("\n")}\nexport const CountryOutlines = {${Object.keys(
-        qCodeQueryResults
-      ).join(",")}}`
-    );
+    buildOutlineIndex(name, qCodeQueryResults);
 
     for (const country of data.validatedData) {
-      const countryOutlineURL = (country.shape as { value: string }).value
-        .split("+")
-        .join("%20");
-      if (
-        !fs.existsSync(`out/${name}/${country.item.value}.outline.data.json`)
-      ) {
-        await sleep(2 * MS_IN_SEC);
-        const countryResult = await axios.get(countryOutlineURL, {});
-        if (!(countryResult["status"] === 200)) {
-          // return null;
-          throw new Error();
-        }
-        fs.writeFile(
-          `out/${name}/${country.item.value}.outline.data.json`,
-          `${JSON.stringify(countryResult.data.data)}`,
-          (err) => wdLog("Error Writing Outline Data File", err)
-        );
-      }
+      await buildOutline(country, name);
     }
+  }
+}
+function buildOutlineIndex(
+  name: string,
+  qCodeQueryResults: { [k: string]: string }
+) {
+  if (!fs.existsSync(`out/${name}`)) {
+    fs.mkdirSync(`out/${name}`);
+  }
+  fs.writeFileSync(
+    `out/${name}/index.ts`,
+    `${Object.keys(qCodeQueryResults)
+      .map((qcode) => {
+        return `import ${qcode} from './${qcode}.outline.data.json';`;
+      })
+      .join("\n")}\nexport const CountryOutlines = {${Object.keys(
+      qCodeQueryResults
+    ).join(",")}}`
+  );
+}
+
+async function buildOutline(country: { [k: string]: any }, name: string) {
+  const countryOutlineURL = `${wikiDataGeoShapeBaseURL}${country.shape.value
+    .split("+")
+    .join("%20")}${wikiDataGeoShapeSuffix}`;
+  if (!fs.existsSync(`out/${name}/${country.item.value}.outline.data.json`)) {
+    await sleep(2 * MS_IN_SEC);
+    const { data: countryResult, status } = await axios.get<{
+      data: { geometries: { coordinates: ArrV2[][][] }[] };
+    }>(countryOutlineURL, {});
+    if (!(status === 200)) {
+      // return null;
+      throw new Error();
+    }
+    wdLog(
+      "TESTURL",
+      countryResult.data.geometries.map(({ coordinates }) => coordinates)
+    );
+    const diffCoords = countryResult.data.geometries.map((geometry) =>
+      geometry.coordinates.map((features) =>
+        features.map((feature) => differentiate(feature))
+      )
+    );
+    fs.writeFile(
+      `out/${name}/${country.item.value}.outline.data.json`,
+      `${JSON.stringify({
+        ...countryResult.data,
+        geometries: [
+          ...countryResult.data.geometries.map((geometry) => ({
+            ...geometry,
+            coordinates: [[[diffCoords]]],
+          })),
+        ],
+      })}`,
+      (err) => wdLog("Error Writing Outline Data File", err)
+    );
   }
 }

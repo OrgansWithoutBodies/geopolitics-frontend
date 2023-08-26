@@ -1,7 +1,7 @@
 import L from "leaflet";
 import React, { useState } from "react";
 import ReactDOM from "react-dom/client";
-import { Marker, MarkerProps } from "react-leaflet";
+import { Marker, MarkerProps } from "react-leaflet/lib/Marker";
 
 interface Props extends MarkerProps {
   /**

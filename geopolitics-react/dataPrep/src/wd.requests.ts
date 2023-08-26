@@ -2,6 +2,8 @@ import { WDPCode } from "./PCodes";
 import { WDQCode } from "./QCodes";
 import { AvailableQuery, PCode, QCode } from "./wd.types";
 
+// TODO if we force keys to be mapped to specific values, then we can get rid of 'type' key altogether
+
 export const UN = "Q1065" as const;
 
 export const elections = `
@@ -200,6 +202,7 @@ export const mines = {
   ],
 } as const;
 // TODO include broader categories, maybe make internet-only/version? Q11032
+
 export const newsAgencies = {
   mainValue: "wd:Q192283",
   includeSubclasses: true,
@@ -208,9 +211,40 @@ export const newsAgencies = {
     {
       sourceKey: "item",
       prefix: "wdt",
-
-      pCode: "P856",
+      pCode: WDPCode.OFFICIAL_WEBSITE,
       valueKey: "website",
+      joinChar: ".",
+      optional: true,
+    },
+    {
+      sourceKey: "item",
+      prefix: "wdt",
+      pCode: WDPCode.WEB_FEED_URL,
+      valueKey: "rssFeed",
+      joinChar: ".",
+      optional: true,
+    },
+  ],
+} as const;
+export const newspaper = {
+  mainValue: "wd:Q11032",
+  includeSubclasses: true,
+  query: [
+    ...COUNTRY_BLOCK({}),
+    // TODO only filter to english
+    {
+      sourceKey: "item",
+      prefix: "wdt",
+      pCode: WDPCode.OFFICIAL_WEBSITE,
+      valueKey: "website",
+      joinChar: ".",
+      optional: true,
+    },
+    {
+      sourceKey: "item",
+      prefix: "wdt",
+      pCode: WDPCode.WEB_FEED_URL,
+      valueKey: "rssFeed",
       joinChar: ".",
       optional: true,
     },

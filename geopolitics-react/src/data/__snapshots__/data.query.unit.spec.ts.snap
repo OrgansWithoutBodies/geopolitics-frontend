@@ -1,0 +1,60 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DataQuery Static Methods applyFiltersToEvents Snapshot 1`] = `
+[
+  {
+    "eventInfo": "Test1-info",
+    "eventName": "Test1-name",
+    "eventTime": 10,
+    "id": 1,
+  },
+  {
+    "eventInfo": "Test2-info",
+    "eventName": "Test2-name",
+    "eventTime": 20,
+    "id": 2,
+  },
+  {
+    "eventInfo": "Test3-info",
+    "eventName": "Test3-name",
+    "eventTime": 30,
+    "id": 3,
+  },
+  {
+    "eventInfo": "Test4-info",
+    "eventName": "Test4-name",
+    "eventTime": 40,
+    "id": 4,
+  },
+  {
+    "eventInfo": "Test5-info",
+    "eventName": "Test5-name",
+    "eventTime": 50,
+    "id": 5,
+  },
+  {
+    "eventInfo": "Test6-info",
+    "eventName": "Test6-name",
+    "eventTime": 60,
+    "id": 6,
+  },
+  {
+    "eventInfo": "Test7-info",
+    "eventName": "Test7-name",
+    "eventTime": 70,
+    "id": 7,
+  },
+  {
+    "eventInfo": "Test8-info",
+    "eventName": "Test8-name",
+    "eventTime": 80,
+    "id": 8,
+  },
+  {
+    "eventInfo": "Test9-info",
+    "eventName": "Test9-name",
+    "eventTime": 90,
+    "id": 9,
+  },
+]
+`;

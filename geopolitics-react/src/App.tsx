@@ -171,7 +171,8 @@ function App() {
             onChange={(event) => {
               console.log(event, event.target.value);
               dataService.setSelectedGeopoliticalGroup(
-                event.target.value as DataState["selectedGeopoliticalGroup"]
+                event.target
+                  .value as any as DataState["selectedGeopoliticalGroup"]
               );
             }}
           >
@@ -253,7 +254,7 @@ function App() {
                           {
                             type: "text",
                             text: cumulativeGroupsQCodes[
-                              selectedGeopoliticalGroup
+                              `Q${selectedGeopoliticalGroup}`
                             ],
                             fontWeight: "bolder",
                             fontSize: 50,

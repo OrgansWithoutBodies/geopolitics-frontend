@@ -1,8 +1,8 @@
+Web workers for long computations - maybe as opposed to backend?
 yarn recursive
 render period different from singleton
 connect w django rest api (maybe rust/go backends)
 generate openapi schema/look into other paradigm
-selectable event
 on hover network edge
 windowing system between components (in progress)
 treemap component

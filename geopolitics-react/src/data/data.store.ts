@@ -22,109 +22,109 @@ import { WDType as WDLimitedRecognitionStates } from "../../dataPrep/out/limited
 import { QCodes as WDLimitedRecognitionStatesQCodes } from "../../dataPrep/out/limitedRecognitionStates.qcodes.data";
 import { WDType as WDTradeBlocs } from "../../dataPrep/out/tradeBlocs.data";
 import { QCodes as WDTradeBlocsQCodes } from "../../dataPrep/out/tradeBlocs.qcodes.data";
-import { WDType as WDWar } from "../../dataPrep/out/wars.data";
-import { QCodes as WDWarQCodes } from "../../dataPrep/out/wars.qcodes.data";
-import { ValidatedTypes } from "../../dataPrep/src/buildQuery";
-import { LatLngObject, themeColors } from "../theme";
+// import { WDType as WDWar } from "../../dataPrep/out/wars.data";
+// import { QCodes as WDWarQCodes } from "../../dataPrep/out/wars.qcodes.data";
+import {
+  WDEntryDateTime,
+  WDEntryGeoShape,
+  WDEntryLatLng,
+  WDEntryQCode,
+} from "../../dataPrep/src/buildQuery";
+import { themeColors } from "../theme";
 import type { TimeSpace } from "../types";
+import { numericalQCode } from "./numericalQCode";
 
 export type NodeLookup = Record<NodeID, NetworkNode>;
 export type QCode<TNumber extends number = number> = `Q${TNumber}`;
 export type PCode<TNumber extends number = number> = `P${TNumber}`;
 
 export type CountryID = BrandedNumber<"CountryID">;
-type TimeStamp<
-  TY extends number = number,
-  TMon extends number = number,
-  TD extends number = number,
-  TH extends number = number,
-  TMin extends number = number,
-  TS extends number = number
-> = `${TY}-${TMon}-${TD}T${TH}:${TMin}:${TS}Z`;
+export type GroupID = BrandedNumber<"GroupID">;
+export type MembershipStatusID = BrandedNumber<"MembershipStatusID">;
 
-type CountryType = {
-  item: { type: ValidatedTypes.QCode; value: QCode<CountryID> };
-  shape: {
-    type: "uri";
-    value: `http://commons.wikimedia.org/data/main/Data:${string}.map`;
-  };
-  center: {
-    type: ValidatedTypes.LatLng;
-    value: LatLngObject;
-  };
-  stateStart: {
-    type: ValidatedTypes.DateTime;
-    value: TimeStamp;
-  };
-  stateEnd: {
-    type: ValidatedTypes.DateTime;
-    value: TimeStamp;
-  };
+export interface WDType<TCode extends number = number> {
+  item: WDEntryQCode<TCode>;
+}
+export interface CountryType extends WDType<CountryID> {
+  shape: WDEntryGeoShape;
+  center: WDEntryLatLng;
+  stateStart: WDEntryDateTime;
+  stateEnd: WDEntryDateTime;
+}
+
+export interface MultilateralOrgType extends WDType<GroupID> {
+  memberState: WDEntryQCode<CountryID>;
+  membershipStatus?: WDEntryQCode<MembershipStatusID>;
+}
+type GeoPolygon = {
+  type: string;
+  features: {
+    type: string;
+    properties: {
+      ADMIN: string;
+      ISO_A3: string;
+    };
+    geometry: {
+      type: "Polygon";
+      coordinates: number[][][];
+    };
+  }[];
 };
+
+type GeoMultiPolygon = {
+  type: string;
+  features: {
+    type: string;
+    properties: {
+      ADMIN: string;
+      ISO_A3: string;
+    };
+    geometry: {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+  }[];
+};
+
 export interface DataState {
-  events: HistoricalEvent[];
+  filterYears: Record<"start" | "end", number | null>;
   initialDateFilter: TimeSpace | null;
   finalDateFilter: TimeSpace | null;
+  events: HistoricalEvent[];
+
   selectedCountry: CountryID | null;
   selectedNetworkNode: NodeID | null;
-  filterYears: Record<"start" | "end", number | null>;
-  internationalOrgs: typeof WDInternationalOrg;
-  internationalOrgsQCodes: typeof WDInternationalOrgQCodes;
-  intergovernmentalOrgs: typeof WDIntergovernmentalOrg;
-  intergovernmentalOrgsQCodes: typeof WDIntergovernmentalOrgQCodes;
-  wars: typeof WDWar;
-  warsQCodes: typeof WDWarQCodes;
+  selectedGeopoliticalGroup: GroupID | null;
+  // wars: typeof WDWar;
+  // warsQCodes: typeof WDWarQCodes;
   networkNodeRenderProps: Record<NodeID, NetworkNodeRenderProps>;
-  tradeBlocs: typeof WDTradeBlocs;
-  selectedGeopoliticalGroup:
-    | (typeof WDTradeBlocs)[number]["item"]["value"]
-    | null;
+
+  internationalOrgs: Readonly<MultilateralOrgType[]>;
+  intergovernmentalOrgs: Readonly<MultilateralOrgType[]>;
+  tradeBlocs: Readonly<MultilateralOrgType[]>;
+  geopoliticalGroups: Readonly<MultilateralOrgType[]>;
+
+  internationalOrgsQCodes: typeof WDInternationalOrgQCodes;
+  intergovernmentalOrgsQCodes: typeof WDIntergovernmentalOrgQCodes;
   tradeBlocsQCodes: typeof WDTradeBlocsQCodes;
+  geopoliticalGroupsQCodes: typeof WDGeopoliticalGroupsQCodes;
 
   countries: CountryType[];
-  geopoliticalGroups: typeof WDGeopoliticalGroups;
-  geopoliticalGroupsQCodes: typeof WDGeopoliticalGroupsQCodes;
   countriesQCodes: Record<
     QCode<CountryID>,
     (typeof WDCountryQCodes)[keyof typeof WDCountryQCodes]
   >;
-  countriesOutlines: Record<
-    QCode<CountryID>,
-    | {
-        type: string;
-        features: {
-          type: string;
-          properties: {
-            ADMIN: string;
-            ISO_A3: string;
-          };
-          geometry: {
-            type: "MultiPolygon";
-            coordinates: number[][][][];
-          };
-        }[];
-      }
-    | {
-        type: string;
-        features: {
-          type: string;
-          properties: {
-            ADMIN: string;
-            ISO_A3: string;
-          };
-          geometry: {
-            type: "Polygon";
-            coordinates: number[][][];
-          };
-        }[];
-      }
-  >;
+  countriesOutlines: Record<QCode<CountryID>, GeoMultiPolygon | GeoPolygon>;
 }
 
 // TODO persist
 export function createInitialState(): DataState {
   return {
+    // TODO why double
+    initialDateFilter: null,
+    finalDateFilter: null,
     filterYears: { start: null, end: null },
+
     networkNodeRenderProps: Object.fromEntries(
       [
         ...new Set(WDTradeBlocs.map((bloc) => bloc.memberState.value).flat()),
@@ -139,16 +139,22 @@ export function createInitialState(): DataState {
         },
       ])
     ),
-    geopoliticalGroups: WDGeopoliticalGroups,
-    geopoliticalGroupsQCodes: WDGeopoliticalGroupsQCodes,
+
     selectedNetworkNode: null,
     selectedCountry: null,
-    internationalOrgs: WDInternationalOrg,
+    selectedGeopoliticalGroup: null,
+
+    tradeBlocs: WDTradeBlocs as any,
+    geopoliticalGroups: WDGeopoliticalGroups as any,
+    internationalOrgs: WDInternationalOrg as any,
+    intergovernmentalOrgs: WDIntergovernmentalOrg as any,
+
+    geopoliticalGroupsQCodes: WDGeopoliticalGroupsQCodes,
     internationalOrgsQCodes: WDInternationalOrgQCodes,
-    intergovernmentalOrgs: WDIntergovernmentalOrg,
     intergovernmentalOrgsQCodes: WDIntergovernmentalOrgQCodes,
-    wars: WDWar,
-    warsQCodes: WDWarQCodes,
+    tradeBlocsQCodes: WDTradeBlocsQCodes,
+    // wars: WDWar,
+    // warsQCodes: WDWarQCodes,
     countries: [
       ...new Set([
         ...(WDCountry as any),
@@ -169,12 +175,7 @@ export function createInitialState(): DataState {
       ...DisputedTerritoryOutlines,
       ...LimitedRecognitionStatesOutlines,
     } as any,
-    tradeBlocs: WDTradeBlocs,
-    selectedGeopoliticalGroup: null,
-    tradeBlocsQCodes: WDTradeBlocsQCodes,
     events: [],
-    initialDateFilter: null,
-    finalDateFilter: null,
   };
 }
 @StoreConfig({ name: "data" })
@@ -185,8 +186,3 @@ export class DataStore extends Store<DataState> {
 }
 
 export const dataStore = new DataStore();
-export function numericalQCode<TNum extends number>(country: {
-  item: { value: `Q${TNum}` };
-}): TNum {
-  return Number.parseInt(country.item.value.replace("Q", "")) as TNum;
-}

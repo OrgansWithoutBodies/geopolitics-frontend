@@ -7,6 +7,7 @@ import {
   JoinStringArray,
   MapArrayOp,
   PCode,
+  QCode,
   QueryString,
   QueryValueSpec,
   ReturnValKey,
@@ -35,7 +36,7 @@ export function buildQueryString<
   includeSubclasses: boolean
 ): QueryString<TRefs, TKeys, TValueKey, TValueMaps> {
   const filterLines = buildFilterLines<TRefs, TKeys, TValueMaps>(
-    keyList,
+    // keyList,
     valueMaps
   );
   return buildFinalQuery<TRefs, TKeys, TValueKey, TValueMaps>(
@@ -112,7 +113,10 @@ function buildFilterLines<
     boolean,
     "."
   >[]
->(keyList: TKeys, valueMaps: TValueMaps) {
+>(
+  // keyList: TKeys,
+  valueMaps: TValueMaps
+) {
   return (
     valueMaps
       // .reverse()
@@ -210,19 +214,23 @@ export async function buildQueryStringAndPost<
   const validatedData = ValidateDataContents(result);
   return { validatedData, result };
 }
-export enum ValidatedTypes {
-  QCode = "QCode",
-  DateTime = "DateTime",
-  Number = "Number",
-  LatLng = "LatLng",
+// shorten since these actually get saved in data - minimize repeated data
+export const enum ValidatedTypes {
+  QCode = "Q",
+  DateTime = "DT",
+  Date = "D",
+  Year = "Y",
+  Number = "N",
+  LatLng = "C",
+  GeoShape = "S",
 }
 
 function ValidateDataContents<
   TRefs extends DBResults2NF,
   TKeys extends (keyof TRefs)[],
-  TResponse extends RawResponseFromWD<TRefs, TKeys, 200>,
-  TData extends TResponse["data"]["results"]["bindings"] = TResponse["data"]["results"]["bindings"],
-  TDatum extends TData[number] = TData[number]
+  TResponse extends RawResponseFromWD<TRefs, TKeys, 200>
+  // TData extends TResponse["data"]["results"]["bindings"] = TResponse["data"]["results"]["bindings"]
+  // TDatum extends TData[number] = TData[number]
 >(results: TResponse) {
   return results.data.results.bindings.map((val) =>
     Object.fromEntries(
@@ -236,37 +244,100 @@ function ValidateDataContents<
         }
         // TODO differentiate Year vs day of year vs date with time vs ... ?
         if (vIsDateTime(v as any)) {
-          return [k, { value: v.value, type: ValidatedTypes.DateTime }];
+          // if (vIsDate(v as any)) {
+          //   if (vIsYear(v as any)) {
+          //     return parseYear(v as any, k);
+          //   }
+          //   return parseDate(v as any, k);
+          // }
+          return parseDateTime(k, v);
         }
         if (vIsLatLng(v as any)) {
           return parseLatLng(v as any, k);
+        }
+        if (vIsGeoShape(v as any)) {
+          return parseGeoShape(v as any, k);
         }
         return [k, v];
       })
     )
   );
+  // TODO coallesce any relavant keys (how to figure out?)
+  // TODO outlines duped across multiple categorizations
 }
+type TimeStamp<
+  TY extends number = number,
+  TMon extends number = number,
+  TD extends number = number,
+  TH extends number = number,
+  TMin extends number = number,
+  TS extends number = number
+> = `${TY}-${TMon}-${TD}T${TH}:${TMin}:${TS}Z`;
+
+export type TWDEntry<TType extends ValidatedTypes, TValue> = {
+  type: TType;
+  value: TValue;
+};
+
+export type WDEntryQCode<TCode extends number = number> = TWDEntry<
+  ValidatedTypes.QCode,
+  QCode<TCode>
+>;
+export type WDEntryDateTime = TWDEntry<ValidatedTypes.DateTime, TimeStamp>;
+export type WDEntryGeoShape = TWDEntry<ValidatedTypes.GeoShape, string>;
+export type WDEntryLatLng = TWDEntry<ValidatedTypes.LatLng, LatLngObject>;
+
+export type WDEntryVarieties =
+  | WDEntryQCode
+  | WDEntryDateTime
+  | WDEntryGeoShape
+  | WDEntryLatLng;
+function parseDateTime(
+  k: string,
+  v: { type: AllowedWDTypes; value: unknown; datatype: null }
+): any {
+  return [k, { value: v.value, type: ValidatedTypes.DateTime }];
+}
+// function parseDate(
+//   k: string,
+//   v: { type: AllowedWDTypes; value: string; datatype: null }
+// ): any {
+//   return [
+//     k,
+//     { value: v.value.replace("T00:00:00Z", ""), type: ValidatedTypes.Date },
+//   ];
+// }
+// function parseYear(
+//   k: string,
+//   v: { type: AllowedWDTypes; value: string; datatype: null }
+// ): any {
+//   return [
+//     k,
+//     {
+//       value: v.value.replace("T00:00:00Z", "").replace("-01-01", ""),
+//       type: ValidatedTypes.Year,
+//     },
+//   ];
+// }
+
 function parseQCode(
   v: { type: AllowedWDTypes; value: unknown; datatype: null },
   k: string
-) {
+): [string, WDEntryQCode] {
   const splitVal = (v["value"] as string).split("/");
   return [
     k,
     {
-      value: splitVal[splitVal.length - 1],
+      value: splitVal[splitVal.length - 1] as QCode,
       type: ValidatedTypes.QCode,
     },
   ];
 }
-
-// TODO
 function parseLatLng(
   v: { type: AllowedWDTypes; value: WikiDataPointLatLng; datatype: null },
   k: string
-) {
+): [string, WDEntryLatLng] {
   const [lat, lng] = v.value.replace("Point(", "").replace(")", "").split(" ");
-
   return [
     k,
     {
@@ -275,6 +346,23 @@ function parseLatLng(
         lng: Number.parseFloat(lng),
       },
       type: ValidatedTypes.LatLng,
+    },
+  ];
+}
+export const wikiDataGeoShapeBaseURL =
+  "http://commons.wikimedia.org/data/main/Data:" as const;
+export const wikiDataGeoShapeSuffix = ".map" as const;
+function parseGeoShape(
+  v: { type: AllowedWDTypes; value: WikiDataPointLatLng; datatype: null },
+  k: string
+): [string, WDEntryGeoShape] {
+  return [
+    k,
+    {
+      value: v.value
+        .replace(wikiDataGeoShapeBaseURL, "")
+        .replace(wikiDataGeoShapeSuffix, ""),
+      type: ValidatedTypes.GeoShape,
     },
   ];
 }
@@ -309,6 +397,20 @@ export function vIsDateTime(v: {
     v["datatype"] === "http://www.w3.org/2001/XMLSchema#dateTime"
   );
 }
+export function vIsYear(v: {
+  type: AllowedWDTypes;
+  value: unknown;
+  datatype: string;
+}) {
+  return v["value"];
+}
+export function vIsDate(v: {
+  type: AllowedWDTypes;
+  value: string;
+  datatype: string;
+}) {
+  return v["value"].split("T")[0] === "T00:00:00Z";
+}
 export function vIsLatLng(v: {
   type: AllowedWDTypes;
   value: unknown;
@@ -317,6 +419,17 @@ export function vIsLatLng(v: {
   return (
     v["type"] === "literal" &&
     v["datatype"] === "http://www.opengis.net/ont/geosparql#wktLiteral"
+  );
+}
+export function vIsGeoShape(v: {
+  type: AllowedWDTypes;
+  value: string;
+  datatype: string;
+}) {
+  return (
+    v["type"] === "uri" &&
+    v["value"].startsWith(wikiDataGeoShapeBaseURL) &&
+    v["value"].endsWith(wikiDataGeoShapeSuffix)
   );
 }
 // type Test = JoinStringArray<
