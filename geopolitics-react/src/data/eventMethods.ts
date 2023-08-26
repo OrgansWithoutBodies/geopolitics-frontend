@@ -62,7 +62,6 @@ export const sortEvents = (
   events: HistoricalEvent[],
   sortKey: keyof LineSegment
 ) => {
-  // console.log("TODO", sortKey);
   return [...events].sort((eventA, eventB) => {
     return timeObjAAfterTimeObjB(eventA.eventTime, eventB.eventTime, sortKey)
       ? 1
@@ -70,7 +69,6 @@ export const sortEvents = (
   });
 };
 
-// TODO is timeline len supposed to be number of years?
 export const buildEventPositioner = (
   earliestDate: TimeSpace,
   latestDate: TimeSpace

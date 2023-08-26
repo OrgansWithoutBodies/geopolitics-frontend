@@ -3,17 +3,20 @@ import { Query } from "@datorama/akita";
 import {
   BilateralRelation,
   CountryHeartMap,
-  CountryNameLookup,
   GeoJsonGeometryGeneric,
   HighlightSpecification,
   adjMatToRawNetwork,
   detectConnectedComponentsFromAdjMat,
+  rawNetworkToAdjMat,
 } from "react-konva-components/src";
 import { Observable, combineLatest, debounceTime, map } from "rxjs";
-import { NetworkNode, RawNetwork, RenderableNetworkEdge } from "type-library";
 import type {
   HexString,
+  NetworkNode,
   ObjectAdjacencyMatrix,
+  RawNetwork,
+  RawNetworkDummy,
+  RenderableNetworkEdge,
   RenderableNetworkNode,
 } from "type-library/src";
 import { WDQCode } from "../../dataPrep/src/QCodes";
@@ -26,7 +29,6 @@ import {
   CountryID,
   DataState,
   DataStore,
-  GroupID,
   MultilateralOrgType,
   QCode,
   dataStore,
@@ -37,7 +39,7 @@ import {
   positionNode,
   sortEvents,
 } from "./eventMethods";
-import { numericalQCode } from "./numericalQCode";
+import { numericalQCode, numericalQCodeDummy } from "./numericalQCode";
 
 export type BlocID = BrandedNumber<"BlocID">;
 
@@ -86,6 +88,8 @@ export class DataQuery extends Query<DataState> {
   public intergovernmentalOrgsQCodes = this.select(
     "intergovernmentalOrgsQCodes"
   );
+  public rawCountries = this.select("countries");
+  private countriesQCodes = this.select("countriesQCodes");
 
   public internationalOrgs = this.select("internationalOrgs");
   public internationalOrgsQCodes = this.select("internationalOrgsQCodes");
@@ -114,27 +118,29 @@ export class DataQuery extends Query<DataState> {
       ]
     )
   );
-  public cumulativeGroupsQCodes: Observable<Record<QCode<GroupID>, string>> =
-    combineLatest([
-      this.geopoliticalGroupsQCodes,
-      this.tradeBlocsQCodes,
-      this.intergovernmentalOrgsQCodes,
-      this.internationalOrgsQCodes,
-    ]).pipe(
-      map(
-        ([
-          geopoliticalGroups,
-          tradeBlocs,
-          intergovernmentalOrgs,
-          internationalOrgsQCodes,
-        ]) => ({
-          ...geopoliticalGroups,
-          ...tradeBlocs,
-          ...intergovernmentalOrgs,
-          ...internationalOrgsQCodes,
-        })
-      )
-    );
+  public qCodesLookup: Observable<Record<QCode, string>> = combineLatest([
+    this.countriesQCodes,
+    this.geopoliticalGroupsQCodes,
+    this.tradeBlocsQCodes,
+    this.intergovernmentalOrgsQCodes,
+    this.internationalOrgsQCodes,
+  ]).pipe(
+    map(
+      ([
+        countriesQCodes,
+        geopoliticalGroups,
+        tradeBlocs,
+        intergovernmentalOrgs,
+        internationalOrgsQCodes,
+      ]) => ({
+        ...countriesQCodes,
+        ...geopoliticalGroups,
+        ...tradeBlocs,
+        ...intergovernmentalOrgs,
+        ...internationalOrgsQCodes,
+      })
+    )
+  );
   public availableGroups = this.cumulativeGroups.pipe(
     map((groups) => [...new Set(groups.map((group) => group.item.value))])
   );
@@ -288,8 +294,6 @@ export class DataQuery extends Query<DataState> {
     this.latestEventEnd,
   ]).pipe(map(([date, fallback]) => (date ? date : fallback)));
 
-  private rawCountries = this.select("countries");
-  private countriesQCodes = this.select("countriesQCodes");
   private existingCountries = this.rawCountries.pipe(
     map((countries) => {
       return countries.filter((country) => {
@@ -378,18 +382,6 @@ export class DataQuery extends Query<DataState> {
         return { start: offsetDate(start), end: offsetDate(end) };
       })
     );
-  public countryToName: Observable<CountryNameLookup<number>> = combineLatest([
-    this.rawCountries,
-    this.countriesQCodes,
-  ]).pipe(
-    map(([countries, countriesQCodes]) => {
-      return Object.fromEntries(
-        countries.map((country) => {
-          return [numericalQCode(country), countriesQCodes[country.item.value]];
-        })
-      );
-    })
-  );
   public countriesInSameAlliance = [];
   public unfilteredEarliestEventStart =
     this.unfilteredEventsSortedByStartDate.pipe(
@@ -442,32 +434,34 @@ export class DataQuery extends Query<DataState> {
       return buildBlocMemberLookup(blocs);
     })
   );
-  public countriesInSameTradeBloc: Observable<
-    ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1>
+  // public countriesInSameTradeBloc: Observable<
+  //   ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1>
+  // > = combineLatest([this.blocMemberships]).pipe(
+  //   map(([blocMemberships]) => {
+  //     return calcCountriesInSameGroup(blocMemberships);
+  //   })
+  // );
+
+  public countriesAndGroupsAsAdjMat: Observable<
+    ObjectAdjacencyMatrix<`${CountryID | BlocID}`, 0 | 1>
   > = combineLatest([this.blocMemberships]).pipe(
     map(([blocMemberships]) => {
+      return calcCountriesGroupMatrix(blocMemberships);
+    })
+  );
+  public countriesVisibleInNetwork = this.blocMemberships.pipe(
+    map((blocMemberships) => {
       const groupedBlocs = Object.values(blocMemberships);
-      const tradeBlocMatrix: ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1> =
-        buildBlocMatrix(groupedBlocs);
-      groupedBlocs.forEach((entryList) => {
-        entryList.forEach((entry, ii) => {
-          entryList.forEach((otherEntry, jj) => {
-            if (jj > ii) {
-              tradeBlocMatrix[QCodeToCountryCode(entry)][
-                QCodeToCountryCode(otherEntry)
-              ] = 1;
-            }
-          });
-        });
-      });
-      return tradeBlocMatrix;
+      const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
+
+      return uniqueEntitiesInTradeBlocs;
     })
   );
   public selectedNetworkNode = this.select("selectedNetworkNode");
 
   // when two participants show up within the same event, they have an arrow pointing between them
   // public eventParticipantsAsNetwork: Observable<RawNetwork<{ id: NodeID }>> =
-  //   this.countriesInSameTradeBloc.pipe(
+  //   this.countrieTradeBloc.pipe(
   //     map((adjMat) => adjMatToRawNetwork<NodeID>(adjMat))
   //   );
   // `QCode${NodeID}`
@@ -488,7 +482,7 @@ export class DataQuery extends Query<DataState> {
   //     })
   //   );
   public eventParticipantsAsNetwork: Observable<RawNetwork> =
-    this.countriesInSameTradeBloc.pipe(
+    this.countriesAndGroupsAsAdjMat.pipe(
       map((objAdjMat) => adjMatToRawNetwork(objAdjMat))
     );
   public networkNodesArray: Observable<NetworkNode[]> =
@@ -551,7 +545,7 @@ export class DataQuery extends Query<DataState> {
       })
     );
   public bilateralRelations: Observable<BilateralRelation<CountryID>[]> =
-    this.countriesInSameTradeBloc.pipe(
+    this.countriesAndGroupsAsAdjMat.pipe(
       map((objAdjMat) => {
         const bilateralRelations: BilateralRelation<CountryID>[] = [];
 
@@ -569,25 +563,26 @@ export class DataQuery extends Query<DataState> {
         return bilateralRelations;
       })
     );
-  public communities: Observable<Record<number, `${CountryID}`[]>> =
-    this.countriesInSameTradeBloc.pipe(
+  public communities: Observable<Record<number, `${CountryID | BlocID}`[]>> =
+    this.countriesAndGroupsAsAdjMat.pipe(
       map((adjMat) => {
         return detectConnectedComponentsFromAdjMat(adjMat);
       })
     );
-  public nodeColorLookup: Observable<Record<`${CountryID}`, HexString>> =
-    this.communities.pipe(
-      map((communities) => {
-        const lookup: Record<`${CountryID}`, HexString> = {};
-        Object.keys(communities).forEach((key) => {
-          communities[Number.parseInt(key)].forEach((country) => {
-            lookup[country] = COLORS[Number.parseInt(key) % COLORS.length];
-          });
+  public nodeColorLookup: Observable<
+    Record<`${CountryID | BlocID}`, HexString>
+  > = this.communities.pipe(
+    map((communities) => {
+      const lookup: Record<`${CountryID | BlocID}`, HexString> = {};
+      Object.keys(communities).forEach((key) => {
+        communities[Number.parseInt(key)].forEach((country) => {
+          lookup[country] = COLORS[Number.parseInt(key) % COLORS.length];
         });
-        return lookup;
-        // return detectConnectedComponentsFromAdjMat(adjMat);
-      })
-    );
+      });
+      return lookup;
+      // return detectConnectedComponentsFromAdjMat(adjMat);
+    })
+  );
 
   public countryStarts: Observable<RenderableEvent[]> = combineLatest([
     this.countriesSortedByStart,
@@ -632,8 +627,38 @@ export class DataQuery extends Query<DataState> {
   //   map((objAdj) => objAdjToAdj(objAdj))
   // );
 }
-type CountryIDString<TCountryID extends CountryID> = `${TCountryID}`;
+// type CountryIDString<TCountryID extends CountryID> = `${TCountryID}`;
 export const dataQuery = new DataQuery(dataStore);
+
+// function calcCountriesInSameGroup(
+//   blocMemberships: Record<`Q${BlocID}`, `Q${CountryID}`[]>
+// ) {
+//   const groupedBlocs = Object.values(blocMemberships);
+//   const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
+
+//   const tradeBlocMatrix: ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1> =
+//     buildBlocMatrix(uniqueEntitiesInTradeBlocs);
+//   groupedBlocs.forEach((entryList) => {
+//     entryList.forEach((entry, ii) => {
+//       entryList.forEach((otherEntry, jj) => {
+//         if (jj > ii) {
+//           tradeBlocMatrix[QCodeToCountryCode(entry)][
+//             QCodeToCountryCode(otherEntry)
+//           ] = 1;
+//         }
+//       });
+//     });
+//   });
+//   return tradeBlocMatrix;
+// }
+function calcCountriesGroupMatrix(
+  blocMemberships: Record<`Q${BlocID}`, `Q${CountryID}`[]>
+) {
+  const tradeBlocMatrix: ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1> =
+    buildMultiModalMatrix(blocMemberships);
+  return tradeBlocMatrix;
+}
+
 function buildBlocMemberLookup(blocs: readonly MultilateralOrgType[]) {
   const uniqueBlocs = [
     ...new Set(blocs.map((entry) => [entry.item.value, []])),
@@ -655,24 +680,18 @@ function QCodeToCountryNumber<TCountryID extends CountryID>(
 ): TCountryID {
   return Number.parseInt(entry.replace("Q", ""));
 }
-function QCodeToCountryCode<TCountryID extends CountryID>(
-  entry: QCode<TCountryID>
-): CountryIDString<TCountryID> {
-  return `${QCodeToCountryNumber<TCountryID>(entry)}`;
-}
+// function QCodeToCountryCode<TCountryID extends CountryID>(
+//   entry: QCode<TCountryID>
+// ): CountryIDString<TCountryID> {
+//   return `${QCodeToCountryNumber<TCountryID>(entry)}`;
+// }
 const hasMembershipGuard = (
   element: MultilateralOrgType
 ): element is Required<MultilateralOrgType> => {
   return "membershipStatus" in element;
 };
 
-export function buildBlocMatrix(groupedBlocs: `Q${CountryID}`[][]) {
-  const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
-  // const countryIndexFromQCodeLookup = Object.fromEntries(
-  //   uniqueEntitiesInTradeBlocs.map((entity, ii) => {
-  //     return [entity, ii] as [QCode<CountryID>, number];
-  //   })
-  // );
+export function buildBlocMatrix(uniqueEntitiesInTradeBlocs: `Q${CountryID}`[]) {
   const QCodeFromCountryIndexLookup = Object.fromEntries(
     uniqueEntitiesInTradeBlocs.map((entity, ii) => {
       return [ii, entity] as [number, QCode<CountryID>];
@@ -695,4 +714,30 @@ export function buildBlocMatrix(groupedBlocs: `Q${CountryID}`[][]) {
       ])
     );
   return tradeBlocMatrix;
+}
+export function buildMultiModalMatrix(
+  groupedBlocs: Record<`Q${BlocID}`, `Q${CountryID}`[]>
+) {
+  const uniqueEntitiesInTradeBlocs = [
+    ...new Set(Object.values(groupedBlocs).flat()),
+  ];
+  const countryNodes = uniqueEntitiesInTradeBlocs.map((entity) => ({
+    id: numericalQCodeDummy<CountryID>(entity),
+  }));
+  const blocNodes = Object.keys(groupedBlocs).map((entity) => ({
+    id: numericalQCodeDummy<BlocID>(entity),
+  }));
+  const rawNetwork: RawNetworkDummy<BlocID | CountryID> = {
+    edges: [],
+    nodes: [...countryNodes, ...blocNodes],
+  };
+  Object.keys(groupedBlocs).forEach((bloc) =>
+    groupedBlocs[bloc].forEach((country) =>
+      rawNetwork.edges.push({
+        origin: numericalQCodeDummy<CountryID>(country),
+        target: numericalQCodeDummy<BlocID>(bloc),
+      })
+    )
+  );
+  return rawNetworkToAdjMat<CountryID | BlocID>(rawNetwork);
 }

@@ -32,6 +32,7 @@ import {
 } from "../../dataPrep/src/buildQuery";
 import { themeColors } from "../theme";
 import type { TimeSpace } from "../types";
+import { BlocID } from "./data.query";
 import { numericalQCode } from "./numericalQCode";
 
 export type NodeLookup = Record<NodeID, NetworkNode>;
@@ -106,7 +107,10 @@ export interface DataState {
 
   internationalOrgsQCodes: typeof WDInternationalOrgQCodes;
   intergovernmentalOrgsQCodes: typeof WDIntergovernmentalOrgQCodes;
-  tradeBlocsQCodes: typeof WDTradeBlocsQCodes;
+  tradeBlocsQCodes: Record<
+    QCode<BlocID>,
+    (typeof WDTradeBlocsQCodes)[keyof typeof WDTradeBlocsQCodes]
+  >;
   geopoliticalGroupsQCodes: typeof WDGeopoliticalGroupsQCodes;
 
   countries: CountryType[];

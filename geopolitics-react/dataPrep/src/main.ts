@@ -10,7 +10,6 @@ import {
   wikiDataGeoShapeBaseURL,
   wikiDataGeoShapeSuffix,
 } from "./buildQuery";
-import { differentiate } from "./geomPrep";
 import { sleep } from "./sleep";
 import {
   colonies,
@@ -22,6 +21,7 @@ import {
   independenceDeclarations,
   intergovernmentalOrganizations,
   internationalOrganizations,
+  lifeExpectanciesForCountries,
   limitedRecognitionStates,
   metals,
   militaryAlliances,
@@ -114,6 +114,7 @@ const availableQueries: Record<string, AvailableQuery> = {
   tradeBlocs,
   intergovernmentalOrganizations,
   geopoliticalGroups,
+  lifeExpectanciesForCountries,
   // unMemberStates,
 };
 // const intersectSets = (a: Set<any>, b: Set<any>) =>
@@ -374,22 +375,23 @@ async function buildOutline(country: { [k: string]: any }, name: string) {
       "TESTURL",
       countryResult.data.geometries.map(({ coordinates }) => coordinates)
     );
-    const diffCoords = countryResult.data.geometries.map((geometry) =>
-      geometry.coordinates.map((features) =>
-        features.map((feature) => differentiate(feature))
-      )
-    );
+    // const diffCoords = countryResult.data.geometries.map((geometry) =>
+    //   geometry.coordinates.map((features) =>
+    //     features.map((feature) => differentiate(feature))
+    //   )
+    // );
     fs.writeFile(
       `out/${name}/${country.item.value}.outline.data.json`,
-      `${JSON.stringify({
-        ...countryResult.data,
-        geometries: [
-          ...countryResult.data.geometries.map((geometry) => ({
-            ...geometry,
-            coordinates: [[[diffCoords]]],
-          })),
-        ],
-      })}`,
+      `${JSON.stringify(
+        // {
+        // ...countryResult.data,
+        countryResult.data
+        // geometries: [
+        //   ...countryResult.data.geometries.map((geometry) => ({
+        //     ...geometry,
+        //     coordinates: [[[diffCoords]]],
+        // }
+      )}`,
       (err) => wdLog("Error Writing Outline Data File", err)
     );
   }

@@ -357,6 +357,7 @@ SIPRI https://www.sipri.org/databases
 // history of Lithuania (Q215063)
 // target (P533)
   // mutiny (Q511866)
+   contains the administrative territorial entity (P150) 
   // rebellion (Q124734)
   // civil war (Q8465)
 

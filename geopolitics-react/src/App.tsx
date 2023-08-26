@@ -1,15 +1,19 @@
 import { useEffect } from "react";
 import {
+  MapContentsType,
   Network,
   NetworkNodeTemplate,
+  NetworkNodeTemplateStar,
   NodesComponentProps,
   WorldMap,
 } from "react-konva-components/src";
 import { KonvaSpace, NodeID, TimeSpace } from "type-library";
+import { WDPCode } from "../dataPrep/src/PCodes";
 import { WDQCode } from "../dataPrep/src/QCodes";
 import { Timeline } from "./Timeline";
 import { dataService } from "./data/data.service";
-import { CountryID, DataState, PCode, QCode } from "./data/data.store";
+import { CountryID, DataState, GroupID, PCode, QCode } from "./data/data.store";
+import { numericalQCodeDummy } from "./data/numericalQCode";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 
@@ -46,7 +50,7 @@ function App() {
     {
       countryStarts,
       countries,
-      countryToName,
+      qCodesLookup,
       selectedCountry,
       filterYearsNullSafe,
       filterYearsRenderReady,
@@ -55,23 +59,23 @@ function App() {
       renderableEventEdges: edges,
       // eventParticipantsAsNetwork: rawNetwork,
       // selectedNetworkNode,
-      countriesInSameTradeBloc,
+      countriesAndGroupsAsAdjMat,
+      countriesVisibleInNetwork,
+      rawCountries,
       bilateralRelations,
       countryHeartMap,
       nodeColorLookup,
       countryColorLookup,
       availableGroups,
-      cumulativeGroupsQCodes,
       selectedGeopoliticalGroup,
       visibleGroupings: RankedEntries,
     },
   ] = useData([
     "countryHeartMap",
     "visibleGroupings",
-    "countryToName",
+    "qCodesLookup",
     "availableGroups",
     "selectedGeopoliticalGroup",
-    "cumulativeGroupsQCodes",
     "bilateralRelations",
     "countryStarts",
     "countries",
@@ -82,74 +86,82 @@ function App() {
     "filterYearsRenderReady",
     "renderableEventEdges",
     // "adjMat",
-    "countriesInSameTradeBloc",
+    "countriesAndGroupsAsAdjMat",
     "renderableEventNetworkNodes",
+    "countriesVisibleInNetwork",
     "selectedNetworkNode",
     "countryColorLookup",
+    "rawCountries",
   ]);
-  console.log("TEST123-countryColorLookup", countryColorLookup);
-  const clipValueToRange = (
-    value: number,
-    { min, max }: { min: number; max: number }
-  ): number => {
-    return Math.min(Math.max(value, min), max);
-  };
   const NetworkStageSize = {
     x: COLUMN_2_WIDTH,
     y: TIMELINE_HEIGHT + MAP_HEIGHT,
   };
-  const NodeTemplate: NodesComponentProps["NodeTemplate"] = ({ node }) => (
-    <NetworkNodeTemplate
-      onNodeMove={(updatingNode, event) =>
-        dataService.moveNode(updatingNode, {
-          x: clipValueToRange(event.target.x(), {
-            min: 0,
-            max: NetworkStageSize.x,
-          }) as KonvaSpace,
-          y: clipValueToRange(event.target.y(), {
-            min: 0,
-            max: NetworkStageSize.y,
-          }) as KonvaSpace,
-        })
-      }
-      highlightedNode={selectedCountry as any as NodeID | null}
-      onMouseOver={(id) => {
-        dataService.setHoveredNetworkNode(id);
-      }}
-      onSelectNode={(id) => {
-        dataService.setSelectedCountry(id as any as CountryID);
-      }}
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      onMouseLeave={() => {}}
-      // onMouseLeave={() => {
-      //   setHighlightedNode(null);
-      // }}
-      node={node}
-      textLookup={countryToName}
-    />
-  );
 
-  // const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  // const [highlightedPlot, setHighlightedPlot] = useState<number | null>(null);
+  // TODO be able to have a multimodal network - ie put countries & multilateral orgs in same network (diff shape - star?)
+  const countryIDs: QCode<CountryID>[] = rawCountries
+    ? rawCountries.map((val) => val.item.value)
+    : [];
+  // const groupIDs: NodeID[] = [];
+  const NodeTemplate: NodesComponentProps["NodeTemplate"] = ({ node }) => {
+    const Template =
+      node.id in countryIDs ? NetworkNodeTemplate : NetworkNodeTemplateStar;
+    return (
+      <Template
+        onNodeMove={(updatingNode, event) =>
+          dataService.moveNode(updatingNode, {
+            x: clipValueToRange(event.target.x(), {
+              min: 0,
+              max: NetworkStageSize.x,
+            }) as KonvaSpace,
+            y: clipValueToRange(event.target.y(), {
+              min: 0,
+              max: NetworkStageSize.y,
+            }) as KonvaSpace,
+          })
+        }
+        // TODO
+        highlightedNode={selectedCountry as any as NodeID | null}
+        onMouseOver={(id) => {
+          dataService.setHoveredNetworkNode(id);
+        }}
+        onSelectNode={(id) => {
+          dataService.setSelectedCountry(id as any as CountryID);
+        }}
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        onMouseLeave={() => {}}
+        node={node}
+        textLookup={numericalQCodeLookup}
+      />
+    );
+  };
 
   useEffect(() => {
-    if (countriesInSameTradeBloc !== undefined) {
-      dataService.setNodesFromAdjMat(countriesInSameTradeBloc, {
+    if (countriesAndGroupsAsAdjMat !== undefined) {
+      dataService.setNodesFromAdjMat(countriesAndGroupsAsAdjMat, {
         width: COLUMN_2_WIDTH,
         height: MAP_HEIGHT + TIMELINE_HEIGHT,
       });
-      dataService.colorNetworkByCommunity(countriesInSameTradeBloc);
+      dataService.colorNetworkByCommunity(countriesAndGroupsAsAdjMat);
     }
-  }, [countriesInSameTradeBloc]);
+  }, [countriesAndGroupsAsAdjMat]);
   const NetworkGeneratorObject: QCodeName = {
     qCode: WDQCode.TRADE_BLOCS,
     name: "Trade Bloc",
   };
   const InceptionProp: PCodeName = {
-    pCode: "P571",
+    pCode: WDPCode.INCEPTION,
     name: "State Founding Events",
   };
 
+  const numericalQCodeLookup = qCodesLookup
+    ? Object.fromEntries(
+        Object.entries(qCodesLookup).map(([key, value]) => [
+          numericalQCodeDummy(key),
+          value,
+        ])
+      )
+    : {};
   return (
     <div>
       {
@@ -164,7 +176,7 @@ function App() {
           filterYearsRenderReady={filterYearsRenderReady}
         />
       )}
-      {availableGroups && (
+      {availableGroups && qCodesLookup && (
         <p>
           Grouping:
           <select
@@ -179,7 +191,7 @@ function App() {
             {/* TODO any */}
             <option value={null as any}>---</option>
             {availableGroups.map((group) => (
-              <option value={group}>{cumulativeGroupsQCodes[group]}</option>
+              <option value={group}>{qCodesLookup[group]}</option>
             ))}
           </select>
         </p>
@@ -224,7 +236,7 @@ function App() {
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {/* <QuotedText /> */}
-          {countryToName && countries && (
+          {qCodesLookup && countries && (
             <div>
               <WorldMap
                 container={{
@@ -233,7 +245,7 @@ function App() {
                 }}
                 contents={{
                   countries,
-                  countryToName,
+                  countryToName: numericalQCodeLookup,
                   countryHeartMap,
                   countryNodeColors: nodeColorLookup,
                   countryLines: bilateralRelations,
@@ -250,42 +262,11 @@ function App() {
                   labels:
                     selectedGeopoliticalGroup === null
                       ? []
-                      : [
-                          {
-                            type: "text",
-                            text: cumulativeGroupsQCodes[
-                              `Q${selectedGeopoliticalGroup}`
-                            ],
-                            fontWeight: "bolder",
-                            fontSize: 50,
-                            position: {
-                              lat: -10 - RankedEntries.length * 10,
-                              lng: -140,
-                            },
-                          },
-
-                          {
-                            type: "text",
-                            text: `As of ${asOfDate}`,
-                            fontWeight: "lighter",
-                            fontSize: 20,
-                            position: {
-                              lat: 0,
-                              lng: -140,
-                            },
-                          },
-                          ...RankedEntries.map((entry, ii) => {
-                            return {
-                              type: "colorbox",
-                              colorBox: entry.color,
-                              text: entry.label,
-                              fontWeight: "normal",
-                              fontSize: 20,
-                              colorBoxSize: 20,
-                              position: { lat: -10 - ii * 10, lng: -140 },
-                            } as const;
-                          }),
-                        ],
+                      : buildLabel(
+                          numericalQCodeLookup,
+                          selectedGeopoliticalGroup,
+                          RankedEntries
+                        ),
                 }}
               />
             </div>
@@ -306,7 +287,6 @@ function App() {
           )}
         </div>
         {
-          // TODO be able to have a multimodal network - ie put countries & multilateral orgs in same network (diff shape - star?)
           <Network
             nodes={nodes}
             edges={edges}
@@ -369,18 +349,56 @@ function App() {
   );
 }
 
-declare global {
-  interface ObjectConstructor {
-    keys<TKeys extends keyof unknown>(o: Record<TKeys, unknown>): TKeys[];
-    values<TValues>(o: Record<keyof unknown, TValues>): TValues[];
-  }
+export default App;
+function buildLabel(
+  qCodesLookup: Record<
+    `Q${import("/home/v/Projects/Geopolitics/frontend/geopolitics-react/src/data/data.store").GroupID}`,
+    string
+  >,
+  selectedGeopoliticalGroup: GroupID,
+  RankedEntries: (
+    | { default: boolean; color: "#285330"; label: string }
+    | { color: "#48CC61"; label: string; default?: undefined }
+    | { color: "#C1ECC9"; label: string; default?: undefined }
+    | { color: "#EAEA77"; label: string; default?: undefined }
+  )[]
+): MapContentsType<CountryID>["labels"] {
+  return [
+    {
+      type: "text",
+      text: qCodesLookup[`Q${selectedGeopoliticalGroup}`],
+      fontWeight: "bolder",
+      fontSize: 50,
+      position: {
+        lat: -10 - RankedEntries.length * 10,
+        lng: -140,
+      },
+    },
 
-  //   interface DateConstructor {
-  //     now(): Milliseconds;
-  //   }
+    {
+      type: "text",
+      text: `As of ${asOfDate}`,
+      fontWeight: "lighter",
+      fontSize: 20,
+      position: {
+        lat: 0,
+        lng: -140,
+      },
+    },
+    ...RankedEntries.map((entry, ii) => {
+      return {
+        type: "colorbox",
+        colorBox: entry.color,
+        text: entry.label,
+        fontWeight: "normal",
+        fontSize: 20,
+        colorBoxSize: 20,
+        position: { lat: -10 - ii * 10, lng: -140 },
+      } as const;
+    }),
+  ];
 }
 
-export default App;
 function Preamble({
   InceptionProp,
   NetworkGeneratorObject,
@@ -520,3 +538,10 @@ function TimeFilter({
     </>
   );
 }
+
+const clipValueToRange = (
+  value: number,
+  { min, max }: { min: number; max: number }
+): number => {
+  return Math.min(Math.max(value, min), max);
+};

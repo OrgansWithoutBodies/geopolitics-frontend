@@ -1,4 +1,4 @@
-Web workers for long computations - maybe as opposed to backend?
+Web workers for long computations - maybe as opposed to backend? https://blog.logrocket.com/web-workers-react-typescript/ https://medium.com/@hamzazaheer721/using-web-workers-in-typescript-react-8d2926a33154
 yarn recursive
 render period different from singleton
 connect w django rest api (maybe rust/go backends)

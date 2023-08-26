@@ -8,6 +8,9 @@ declare global {
       o: Record<TKeys, unknown>
     ): `${TKeys}`[];
     values<TValues>(o: Record<keyof unknown, TValues>): TValues[];
+    entries<TValues, TKeys extends string>(
+      o: Record<TKeys, TValues> | ArrayLike<TValues>
+    ): [TKeys, TValues][];
   }
   interface NumberConstructor {
     parseInt<TNum extends number = number>(

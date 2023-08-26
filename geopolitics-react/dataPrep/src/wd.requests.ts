@@ -350,6 +350,38 @@ export const countries = {
     // },
   ],
 } as const;
+export const lifeExpectanciesForCountries = {
+  mainValue: `wd:${"Q6256"}`,
+  includeSubclasses: true,
+  query: [
+    // ...STATE_ACTOR_BLOCK(),
+    {
+      sourceKey: "item",
+      prefix: "p",
+      pCode: WDPCode.LIFE_EXPECTANCY,
+      valueKey: "lifeExpectancyStatement",
+      joinChar: ".",
+      optional: true,
+      intermediate: true,
+    },
+    {
+      sourceKey: "lifeExpectancyStatement",
+      prefix: "ps",
+      pCode: WDPCode.LIFE_EXPECTANCY,
+      valueKey: "lifeExpectancy",
+      joinChar: ".",
+      optional: true,
+    },
+    {
+      sourceKey: "lifeExpectancyStatement",
+      prefix: "pq",
+      pCode: WDPCode.POINT_IN_TIME,
+      valueKey: "lifeExpectancyTime",
+      joinChar: ".",
+      optional: true,
+    },
+  ],
+} as const;
 
 export const multilateralOrganizationObject = (
   code: QCode,
@@ -381,6 +413,15 @@ export const multilateralOrganizationObject = (
       // TODO sometimes this is OBJECT_HAS_ROLE?
       pCode: WDPCode.SUBJECT_HAS_ROLE,
       valueKey: "membershipStatus",
+      joinChar: ".",
+      optional: true,
+    },
+    {
+      // sometimes people put old members using this
+      sourceKey: "memberStateStatement",
+      prefix: "pq",
+      pCode: WDPCode.END_TIME,
+      valueKey: "membershipEndTime",
       joinChar: ".",
       optional: true,
     },

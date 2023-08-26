@@ -11,9 +11,7 @@ describe("Network Methods", () => {
     } = await performBenchTest<
       (val: ObjectAdjacencyMatrix<string, 0 | 1>) => void
     >({
-      nFunc: (setupParams) =>
-        // TODO setup is affecting timing...maybe have a separate setup step that goes before timer starts?
-        detectConnectedComponentsFromAdjMat(setupParams),
+      nFunc: (setupParams) => detectConnectedComponentsFromAdjMat(setupParams),
       setupFunc: (N) =>
         Object.fromEntries(
           [...new Array(N).keys()].map((ii) => [
@@ -43,9 +41,7 @@ describe("Network Methods", () => {
     } = await performBenchTest<
       (val: ObjectAdjacencyMatrix<string, 0 | 1>) => void
     >({
-      nFunc: (setupParams) =>
-        // TODO setup is affecting timing...maybe have a separate setup step that goes before timer starts?
-        findRestOfComponent(setupParams, `${0}`),
+      nFunc: (setupParams) => findRestOfComponent(setupParams, `${0}`),
       setupFunc: (N) =>
         Object.fromEntries(
           [...new Array(N).keys()].map((ii) => [
