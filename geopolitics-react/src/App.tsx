@@ -7,13 +7,14 @@ import {
   NodesComponentProps,
   WorldMap,
 } from "react-konva-components/src";
-import { KonvaSpace, NodeID, TimeSpace } from "type-library";
+import { HexString, KonvaSpace, NodeID, TimeSpace } from "type-library";
 import { WDPCode } from "../dataPrep/src/PCodes";
 import { WDQCode } from "../dataPrep/src/QCodes";
 import { Timeline } from "./Timeline";
 import { dataService } from "./data/data.service";
 import { CountryID, DataState, GroupID, PCode, QCode } from "./data/data.store";
 import { numericalQCodeDummy } from "./data/numericalQCode";
+import { themeColors } from "./theme";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 
@@ -21,6 +22,10 @@ const COLUMN_1_WIDTH = 256 * 4;
 const COLUMN_2_WIDTH = 512;
 const MAP_HEIGHT = 580;
 const TIMELINE_HEIGHT = 110;
+export const NetworkStageSize = {
+  x: COLUMN_2_WIDTH,
+  y: TIMELINE_HEIGHT + MAP_HEIGHT,
+};
 type QCodeName = {
   qCode: QCode;
   name: string;
@@ -93,10 +98,6 @@ function App() {
     "countryColorLookup",
     "rawCountries",
   ]);
-  const NetworkStageSize = {
-    x: COLUMN_2_WIDTH,
-    y: TIMELINE_HEIGHT + MAP_HEIGHT,
-  };
 
   // TODO be able to have a multimodal network - ie put countries & multilateral orgs in same network (diff shape - star?)
   const countryIDs: QCode<CountryID>[] = rawCountries
@@ -135,7 +136,8 @@ function App() {
       />
     );
   };
-
+  // const [loading, setLoading] = useState<boolean>(false);
+  const loading = false;
   useEffect(() => {
     if (countriesAndGroupsAsAdjMat !== undefined) {
       dataService.setNodesFromAdjMat(countriesAndGroupsAsAdjMat, {
@@ -145,6 +147,7 @@ function App() {
       dataService.colorNetworkByCommunity(countriesAndGroupsAsAdjMat);
     }
   }, [countriesAndGroupsAsAdjMat]);
+
   const NetworkGeneratorObject: QCodeName = {
     qCode: WDQCode.TRADE_BLOCS,
     name: "Trade Bloc",
@@ -164,6 +167,13 @@ function App() {
     : {};
   return (
     <div>
+      {loading && (
+        <InfoBar
+          text={"loading..."}
+          backgroundColor={themeColors.Tangerine}
+          color={themeColors.K}
+        />
+      )}
       {
         <Preamble
           InceptionProp={InceptionProp}
@@ -176,6 +186,18 @@ function App() {
           filterYearsRenderReady={filterYearsRenderReady}
         />
       )}
+      <button
+        onClick={async () => {
+          // setLoading(true);
+          await dataService.setNodesFromAdjMat(countriesAndGroupsAsAdjMat, {
+            width: COLUMN_2_WIDTH,
+            height: MAP_HEIGHT + TIMELINE_HEIGHT,
+          });
+          // setLoading(false);
+        }}
+      >
+        Reset Network Layout
+      </button>
       {availableGroups && qCodesLookup && (
         <p>
           Grouping:
@@ -306,11 +328,6 @@ function App() {
       <p>
         Way Too Slow (~5-6 sec to load basic app), once I add tests I'll be able
         to easily refactor without fear
-      </p>
-      <p>
-        Network Placement algorithm has tendency to push nodes into corners
-        (seed is random, reloading page might get a seed that looks better for
-        current data, eventually will need to implement better algorithm)
       </p>
       <p>
         Network dragging needs improving, flips back to original position
@@ -539,9 +556,33 @@ function TimeFilter({
   );
 }
 
-const clipValueToRange = (
+export const clipValueToRange = (
   value: number,
   { min, max }: { min: number; max: number }
 ): number => {
   return Math.min(Math.max(value, min), max);
 };
+
+function InfoBar({
+  text,
+  color,
+  backgroundColor,
+}: {
+  text: string;
+  backgroundColor: HexString;
+  color: HexString;
+}): JSX.Element {
+  return (
+    <div
+      style={{
+        backgroundColor,
+        color,
+        position: "fixed",
+        top: 0,
+        width: "100%",
+      }}
+    >
+      {text}
+    </div>
+  );
+}

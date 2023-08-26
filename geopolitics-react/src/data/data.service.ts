@@ -10,6 +10,7 @@ import type {
   ObjV2,
   ObjectAdjacencyMatrix,
 } from "type-library/src";
+import { NetworkStageSize } from "../App";
 import { TimeSpace } from "../types";
 import { COLORS } from "./COLORS";
 import { CountryID, DataState, DataStore, dataStore } from "./data.store";
@@ -96,12 +97,18 @@ export class DataService {
       ...Object.keys(objAdjMat).map((keyStr) => Number.parseInt(keyStr)),
     ] as NodeID[];
     const adjMat = objAdjToAdj(objAdjMat);
-    const borderFactor = 0.1;
     const placements = forceDirectedGraph({
       G: adjMat,
-      edge_length: 200,
-      H: height * (2 - 2 * borderFactor),
-      W: width * (1.8 - 2 * borderFactor),
+      iterations: 50,
+      // for fine tuning params, static seed is helpful
+      // seed: "Test",
+      // edge_length: 40,
+      H: NetworkStageSize.y,
+      W: NetworkStageSize.x,
+      offset: { x: -50, y: -20 },
+      attractFac: 2,
+      repulseFac: 2,
+      wallFac: 7,
     });
 
     placements.forEach((placement, ii) => {

@@ -1,4 +1,5 @@
 export const themeColors = {
+  Fir: "#114814",
   Pine: "#285330",
   Ivy: "#139A66",
   Grass: "#48CC61",
@@ -11,6 +12,7 @@ export const themeColors = {
   Wine: "#770077",
   Grape: "#7722FF",
   Jean: "#4482EE",
+  Crimson: "#64121E",
 
   R: "#FF0000",
   G: "#00FF00",
@@ -21,4 +23,19 @@ export const themeColors = {
 
   W: "#FFFFFF",
   K: "#000000",
+
+  G1: "#111111",
+  G2: "#222222",
+  G3: "#333333",
+  G4: "#444444",
+  G5: "#555555",
+  G6: "#666666",
+  G7: "#777777",
+  G8: "#888888",
+  G9: "#999999",
+  GA: "#AAAAAA",
+  GB: "#BBBBBB",
+  GC: "#CCCCCC",
+  GD: "#DDDDDD",
+  GE: "#EEEEEE",
 } as const;
