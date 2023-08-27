@@ -12,12 +12,19 @@ import { WDPCode } from "../dataPrep/src/PCodes";
 import { WDQCode } from "../dataPrep/src/QCodes";
 import { Timeline } from "./Timeline";
 import { dataService } from "./data/data.service";
-import { CountryID, DataState, GroupID, PCode, QCode } from "./data/data.store";
+import {
+  CountryID,
+  GroupID,
+  MetaGrouping,
+  PCode,
+  QCode,
+} from "./data/data.store";
 import { numericalQCodeDummy } from "./data/numericalQCode";
 import { themeColors } from "./theme";
 import { MS_IN_YEAR, unoffsetDate } from "./timeTools";
 import { useData } from "./useAkita";
 
+// type GetNumericalTypeOfQCode<TQCode extends QCode<number>> = TQCode extends QCode<infer TNum> ? TNum : never
 const COLUMN_1_WIDTH = 256 * 4;
 const COLUMN_2_WIDTH = 512;
 const MAP_HEIGHT = 580;
@@ -99,14 +106,25 @@ function App() {
     "rawCountries",
   ]);
 
-  // TODO be able to have a multimodal network - ie put countries & multilateral orgs in same network (diff shape - star?)
   const countryIDs: QCode<CountryID>[] = rawCountries
     ? rawCountries.map((val) => val.item.value)
     : [];
+  useEffect(() => {
+    if (countriesAndGroupsAsAdjMat !== undefined) {
+      dataService.setNodesFromAdjMat(countriesAndGroupsAsAdjMat, {
+        width: COLUMN_2_WIDTH,
+        height: MAP_HEIGHT + TIMELINE_HEIGHT,
+      });
+      dataService.colorNetworkByCommunity(countriesAndGroupsAsAdjMat);
+    }
+  }, [countriesAndGroupsAsAdjMat]);
+
   // const groupIDs: NodeID[] = [];
   const NodeTemplate: NodesComponentProps["NodeTemplate"] = ({ node }) => {
-    const Template =
-      node.id in countryIDs ? NetworkNodeTemplate : NetworkNodeTemplateStar;
+    const nodeIsCountry = node.id in countryIDs;
+    const Template = nodeIsCountry
+      ? NetworkNodeTemplate
+      : NetworkNodeTemplateStar;
     return (
       <Template
         onNodeMove={(updatingNode, event) =>
@@ -121,13 +139,16 @@ function App() {
             }) as KonvaSpace,
           })
         }
-        // TODO
+        // TODO no any
+        // TODO figure out desired behavior when selected is group
         highlightedNode={selectedCountry as any as NodeID | null}
         onMouseOver={(id) => {
           dataService.setHoveredNetworkNode(id);
         }}
         onSelectNode={(id) => {
-          dataService.setSelectedCountry(id as any as CountryID);
+          nodeIsCountry
+            ? dataService.setSelectedCountry(id as any as CountryID)
+            : dataService.setSelectedGeopoliticalGroup(id as any as GroupID);
         }}
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         onMouseLeave={() => {}}
@@ -138,15 +159,6 @@ function App() {
   };
   // const [loading, setLoading] = useState<boolean>(false);
   const loading = false;
-  useEffect(() => {
-    if (countriesAndGroupsAsAdjMat !== undefined) {
-      dataService.setNodesFromAdjMat(countriesAndGroupsAsAdjMat, {
-        width: COLUMN_2_WIDTH,
-        height: MAP_HEIGHT + TIMELINE_HEIGHT,
-      });
-      dataService.colorNetworkByCommunity(countriesAndGroupsAsAdjMat);
-    }
-  }, [countriesAndGroupsAsAdjMat]);
 
   const NetworkGeneratorObject: QCodeName = {
     qCode: WDQCode.TRADE_BLOCS,
@@ -157,7 +169,7 @@ function App() {
     name: "State Founding Events",
   };
 
-  const numericalQCodeLookup = qCodesLookup
+  const numericalQCodeLookup: Record<number, string> = qCodesLookup
     ? Object.fromEntries(
         Object.entries(qCodesLookup).map(([key, value]) => [
           numericalQCodeDummy(key),
@@ -200,22 +212,40 @@ function App() {
       </button>
       {availableGroups && qCodesLookup && (
         <p>
-          Grouping:
-          <select
-            onChange={(event) => {
-              console.log(event, event.target.value);
-              dataService.setSelectedGeopoliticalGroup(
-                event.target
-                  .value as any as DataState["selectedGeopoliticalGroup"]
-              );
-            }}
-          >
-            {/* TODO any */}
-            <option value={null as any}>---</option>
-            {availableGroups.map((group) => (
-              <option value={group}>{qCodesLookup[group]}</option>
-            ))}
-          </select>
+          <p>
+            Grouping:
+            <select
+              onChange={(event) => {
+                console.log(event, event.target.value);
+                dataService.setSelectedGeopoliticalGroup(
+                  numericalQCodeDummy<GroupID>(
+                    event.target.value as (typeof availableGroups)[number]
+                  )
+                );
+              }}
+            >
+              {/* TODO any */}
+              <option value={null as any}>---</option>
+              {availableGroups.map((group) => (
+                <option value={group}>{qCodesLookup[group]}</option>
+              ))}
+            </select>
+          </p>
+          <p>
+            NetworkGrouping:
+            <select
+              // selected={MetaGrouping.TRADE_BLOCS}
+              onChange={(event) => {
+                dataService.setSelectedNetworkGrouping(event.target.value);
+              }}
+            >
+              {Object.keys(MetaGrouping).map((metaGroup) => (
+                <option value={MetaGrouping[metaGroup]}>
+                  {MetaGrouping[metaGroup]}
+                </option>
+              ))}
+            </select>
+          </p>
         </p>
       )}
       {/* <LinePlot
@@ -368,10 +398,9 @@ function App() {
 
 export default App;
 function buildLabel(
-  qCodesLookup: Record<
-    `Q${import("/home/v/Projects/Geopolitics/frontend/geopolitics-react/src/data/data.store").GroupID}`,
-    string
-  >,
+  // TODO why does this allow Record<number,string>?
+  // qCodesLookup: Record<QCode, string>,
+  numericalQCodesLookup: Record<number, string>,
   selectedGeopoliticalGroup: GroupID,
   RankedEntries: (
     | { default: boolean; color: "#285330"; label: string }
@@ -380,10 +409,11 @@ function buildLabel(
     | { color: "#EAEA77"; label: string; default?: undefined }
   )[]
 ): MapContentsType<CountryID>["labels"] {
+  console.log("TEST123", numericalQCodesLookup, selectedGeopoliticalGroup);
   return [
     {
       type: "text",
-      text: qCodesLookup[`Q${selectedGeopoliticalGroup}`],
+      text: numericalQCodesLookup[selectedGeopoliticalGroup],
       fontWeight: "bolder",
       fontSize: 50,
       position: {

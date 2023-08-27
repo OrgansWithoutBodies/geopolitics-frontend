@@ -9,7 +9,8 @@ import {
   detectConnectedComponentsFromAdjMat,
   rawNetworkToAdjMat,
 } from "react-konva-components/src";
-import { Observable, combineLatest, debounceTime, map } from "rxjs";
+import { Observable, combineLatest, debounceTime, map, switchMap } from "rxjs";
+import { KonvaSpace } from "type-library";
 import type {
   HexString,
   NetworkNode,
@@ -29,6 +30,7 @@ import {
   CountryID,
   DataState,
   DataStore,
+  MetaGrouping,
   MultilateralOrgType,
   QCode,
   dataStore,
@@ -82,21 +84,27 @@ export class DataQuery extends Query<DataState> {
   private unfilteredEvents = this.select("events");
 
   public tradeBlocs = this.select("tradeBlocs");
-  public tradeBlocsQCodes = this.select("tradeBlocsQCodes");
-
   public intergovernmentalOrgs = this.select("intergovernmentalOrgs");
+  public rawCountries = this.select("countries");
+  public internationalOrgs = this.select("internationalOrgs");
+  public geopoliticalGroups = this.select("geopoliticalGroups");
+
+  public tradeBlocsQCodes = this.select("tradeBlocsQCodes");
   public intergovernmentalOrgsQCodes = this.select(
     "intergovernmentalOrgsQCodes"
   );
-  public rawCountries = this.select("countries");
   private countriesQCodes = this.select("countriesQCodes");
-
-  public internationalOrgs = this.select("internationalOrgs");
   public internationalOrgsQCodes = this.select("internationalOrgsQCodes");
-
-  public geopoliticalGroups = this.select("geopoliticalGroups");
   public geopoliticalGroupsQCodes = this.select("geopoliticalGroupsQCodes");
+
   public selectedGeopoliticalGroup = this.select("selectedGeopoliticalGroup");
+  public selectedNetworkGrouping = this.select("selectedNetworkGrouping");
+  // private rawWars = this.select("wars");
+  private countryOutlines = this.select("countriesOutlines");
+
+  public initialDateFilter = this.select("initialDateFilter");
+  public finalDateFilter = this.select("finalDateFilter");
+  public selectedCountry = this.select("selectedCountry");
 
   public cumulativeGroups = combineLatest([
     this.geopoliticalGroups,
@@ -198,32 +206,6 @@ export class DataQuery extends Query<DataState> {
         .map(({ status }) => MembershipStatusStyling[status])
     )
   );
-  // public networkNodes = this.select("networkNodes");
-  // public adjMat: Observable<AdjacencyMatrix> = this.rawNetwork.pipe(
-  //   map((network) => rawNetworkToAdjMat(network))
-  // );
-
-  // public renderableEdges: Observable<RenderableNetworkEdge[]> = combineLatest([
-  //   this.renderableNetworkNodes,
-  //   this.networkEdges,
-  //   this.adjMat,
-  // ]).pipe(
-  //   map(([nodes, edges]) => {
-  //     return edges.map((edge) => {
-  //       return {
-  //         ...edge,
-  //         renderedProps: {
-  //           originPosition: nodes[edge.origin].renderedProps.position,
-  //           targetPosition: nodes[edge.target].renderedProps.position,
-  //         },
-  //       };
-  //     });
-  //   })
-  // );
-
-  public initialDateFilter = this.select("initialDateFilter");
-  public finalDateFilter = this.select("finalDateFilter");
-
   public events = combineLatest([
     this.unfilteredEvents,
     this.initialDateFilter,
@@ -310,9 +292,6 @@ export class DataQuery extends Query<DataState> {
   //       });
   //   })
   // );
-  // private rawWars = this.select("wars");
-  // public tradeBlocs = this.select("tradeBloc");
-  private countryOutlines = this.select("countriesOutlines");
 
   // private wars;
   public countries: Observable<
@@ -331,9 +310,7 @@ export class DataQuery extends Query<DataState> {
       }));
     })
   );
-  public selectedCountry: Observable<CountryID | null> =
-    this.select("selectedCountry");
-  // 0800-01-01T00:00:00Z
+
   public countriesSortedByStart: typeof this.existingCountries = combineLatest([
     this.existingCountries,
   ]).pipe(
@@ -427,9 +404,26 @@ export class DataQuery extends Query<DataState> {
 
   // NETWORK STUFF
 
+  public selectedMetaGroup: Observable<readonly MultilateralOrgType[]> =
+    this.selectedNetworkGrouping.pipe(
+      switchMap((val) => {
+        switch (val) {
+          case MetaGrouping.TRADE_BLOCS:
+            return this.tradeBlocs;
+          case MetaGrouping.GEOPOLITICAL_GROUPS:
+            return this.geopoliticalGroups;
+          case MetaGrouping.INTERGOVERNMENTAL_ORGANIZATIONS:
+            return this.intergovernmentalOrgs;
+          case MetaGrouping.INTERNATIONAL_ORGANIZATIONS:
+            return this.internationalOrgs;
+          default:
+            return [] as const;
+        }
+      })
+    );
   public blocMemberships: Observable<
     Record<QCode<BlocID>, QCode<CountryID>[]>
-  > = this.tradeBlocs.pipe(
+  > = this.selectedMetaGroup.pipe(
     map((blocs) => {
       return buildBlocMemberLookup(blocs);
     })
@@ -509,14 +503,19 @@ export class DataQuery extends Query<DataState> {
     ]).pipe(
       map(([nodes, { edges }]) => {
         return edges.map((edge) => {
+          const originNode = nodes.find(({ id }) => id === edge.origin);
+          const targetNode = nodes.find(({ id }) => id === edge.target);
           return {
             ...edge,
             renderedProps: {
               position: {
-                origin: nodes.find(({ id }) => id === edge.origin)!
-                  .renderedProps.position,
-                target: nodes.find(({ id }) => id === edge.target)!
-                  .renderedProps.position,
+                // TODO should typewise distinguish
+                origin: originNode
+                  ? originNode.renderedProps.position
+                  : { x: 0 as KonvaSpace, y: 0 as KonvaSpace },
+                target: targetNode
+                  ? targetNode.renderedProps.position
+                  : { x: 0 as KonvaSpace, y: 0 as KonvaSpace },
               },
             },
           };

@@ -41,6 +41,7 @@ export type PCode<TNumber extends number = number> = `P${TNumber}`;
 
 export type CountryID = BrandedNumber<"CountryID">;
 export type GroupID = BrandedNumber<"GroupID">;
+export type MetaGroupID = BrandedNumber<"MetaGroupID">;
 export type MembershipStatusID = BrandedNumber<"MembershipStatusID">;
 
 export interface WDType<TCode extends number = number> {
@@ -87,6 +88,12 @@ type GeoMultiPolygon = {
   }[];
 };
 
+export enum MetaGrouping {
+  TRADE_BLOCS = "Trade Blocs",
+  GEOPOLITICAL_GROUPS = "Geopolitical Groups",
+  INTERNATIONAL_ORGANIZATIONS = "International Organizations (Slower)",
+  INTERGOVERNMENTAL_ORGANIZATIONS = "Intergovernmental Organizations (Slower)",
+}
 export interface DataState {
   filterYears: Record<"start" | "end", number | null>;
   initialDateFilter: TimeSpace | null;
@@ -95,7 +102,9 @@ export interface DataState {
 
   selectedCountry: CountryID | null;
   selectedNetworkNode: NodeID | null;
+  hoveredNetworkNode: NodeID | null;
   selectedGeopoliticalGroup: GroupID | null;
+  selectedNetworkGrouping: MetaGrouping;
   // wars: typeof WDWar;
   // warsQCodes: typeof WDWarQCodes;
   networkNodeRenderProps: Record<NodeID, NetworkNodeRenderProps>;
@@ -124,7 +133,7 @@ export interface DataState {
 // TODO persist
 export function createInitialState(): DataState {
   return {
-    // TODO why double
+    hoveredNetworkNode: null,
     initialDateFilter: null,
     finalDateFilter: null,
     filterYears: { start: null, end: null },
@@ -145,6 +154,7 @@ export function createInitialState(): DataState {
     ),
 
     selectedNetworkNode: null,
+    selectedNetworkGrouping: MetaGrouping.INTERGOVERNMENTAL_ORGANIZATIONS,
     selectedCountry: null,
     selectedGeopoliticalGroup: null,
 

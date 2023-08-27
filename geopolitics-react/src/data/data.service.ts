@@ -11,43 +11,39 @@ import type {
   ObjectAdjacencyMatrix,
 } from "type-library/src";
 import { NetworkStageSize } from "../App";
-import { TimeSpace } from "../types";
 import { COLORS } from "./COLORS";
-import { CountryID, DataState, DataStore, dataStore } from "./data.store";
+import { DataState, DataStore, dataStore } from "./data.store";
 
 export class DataService {
-  public setInitialDateFilter(initialDateFilter: TimeSpace | null) {
+  private unitaryUpdate<TKey extends keyof DataState>(
+    key: TKey,
+    val: DataState[TKey]
+  ) {
     this.dataStore.update((state) => {
       return {
         ...state,
-        initialDateFilter,
+        [key]: val,
       };
     });
   }
-  public setFinalDateFilter(finalDateFilter: TimeSpace | null) {
-    this.dataStore.update((state) => {
-      return {
-        ...state,
-        finalDateFilter,
-      };
-    });
+
+  private simpleUpdate<TKey extends keyof DataState>(key: TKey) {
+    return (val: DataState[TKey]) => this.unitaryUpdate(key, val);
   }
-  public setSelectedCountry(countryID: CountryID) {
-    this.dataStore.update((state) => {
-      return {
-        ...state,
-        selectedCountry: countryID,
-      };
-    });
-  }
-  public setFilterYear(filterYears: Record<"start" | "end", number | null>) {
-    this.dataStore.update((state) => {
-      return {
-        ...state,
-        filterYears,
-      };
-    });
-  }
+
+  public setInitialDateFilter = this.simpleUpdate("initialDateFilter");
+  public setFinalDateFilter = this.simpleUpdate("finalDateFilter");
+  public setSelectedCountry = this.simpleUpdate("selectedCountry");
+  public setFilterYear = this.simpleUpdate("filterYears");
+  public setSelectedNode = this.simpleUpdate("selectedNetworkNode");
+  public setHoveredNetworkNode = this.simpleUpdate("hoveredNetworkNode");
+  public setSelectedGeopoliticalGroup = this.simpleUpdate(
+    "selectedGeopoliticalGroup"
+  );
+  public setSelectedNetworkGrouping = this.simpleUpdate(
+    "selectedNetworkGrouping"
+  );
+
   public setFilterEndpoint(endpoint: "start" | "end", val: number | null) {
     this.dataStore.update((state) => {
       return {
@@ -64,32 +60,13 @@ export class DataService {
         [id]: {
           ...state.networkNodeRenderProps[id],
           color: newColor,
-          // renderedProps: {  },
         },
       };
 
       return { ...state, networkNodeRenderProps: mutableNodeLookup };
     });
   }
-  public setSelectedNode(nodeID: NodeID) {
-    this.dataStore.update((state) => {
-      return { ...state, selectedNetworkNode: nodeID };
-    });
-  }
-  public setHoveredNetworkNode(nodeID: NodeID) {
-    this.dataStore.update((state) => {
-      return { ...state, hoveredNetworkNode: nodeID };
-    });
-  }
-  public setSelectedGeopoliticalGroup(
-    group: DataState["selectedGeopoliticalGroup"]
-  ) {
-    console.log("TEST123-group", group);
-    this.dataStore.update((state) => {
-      return { ...state, selectedGeopoliticalGroup: group };
-    });
-  }
-  public setNodesFromAdjMat(
+  public async setNodesFromAdjMat(
     objAdjMat: ObjectAdjacencyMatrix<`${NodeID}`, 0 | 1>,
     { height, width }: { width: number; height: number }
   ) {
@@ -116,19 +93,16 @@ export class DataService {
         x: Math.max(placement.x + 0 * width, 0) as KonvaSpace,
         y: Math.max(placement.y + 0 * height, 0) as KonvaSpace,
       });
-      // this.recolorNode(keys[ii], getRandomColor());
     });
   }
 
   public moveNode(id: NodeID, newPosition: ObjV2<KonvaSpace>) {
     this.dataStore.update((state) => {
-      // console.log("TEST123-MOVENODE", id, state.networkNodeRenderProps[id]);
       const mutableNodeLookup = {
         ...state.networkNodeRenderProps,
         [id]: {
           ...state.networkNodeRenderProps[id],
           position: newPosition,
-          // renderedProps: {  },
         },
       };
 
@@ -136,17 +110,10 @@ export class DataService {
     });
   }
 
-  // TODO vscode snippet
-  // public colorNetworkByCommunity(colors:HexString[]=COLORS){
-  //   this.dataStore.update((state)=>{
-  //     return {
-  //       ...state,
-  //     }
-  //   })
-  // }
+  // TODO vscode snippet for akita
 
   // Cycles through colors
-  public colorNetworkByCommunity(
+  public async colorNetworkByCommunity(
     adjMat: ObjectAdjacencyMatrix,
     colors: HexString[] = COLORS
   ) {
@@ -161,11 +128,6 @@ export class DataService {
         );
       });
     });
-    // this.dataStore.update((state)=>{
-    //   return {
-    //     ...state,
-    //   }
-    // })
   }
 
   public nudgeFilterEndpoint(endpoint: "start" | "end", val: number) {
