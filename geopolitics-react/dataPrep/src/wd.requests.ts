@@ -288,6 +288,15 @@ const STATE_ACTOR_BLOCK = () =>
       joinChar: ".",
       optional: true,
     },
+    {
+      sourceKey: "item",
+      prefix: "wdt",
+      pCode: WDPCode.CONTINENT,
+      // WDPCode.APPLIES_TO_PART
+      valueKey: "continent",
+      joinChar: ".",
+      optional: true,
+    },
   ] as const;
 const stateActorObject = (qCode: QCode<number>) =>
   ({

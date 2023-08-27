@@ -7,7 +7,7 @@ import {
   NodesComponentProps,
   WorldMap,
 } from "react-konva-components/src";
-import { HexString, KonvaSpace, NodeID, TimeSpace } from "type-library";
+import { HexString, KonvaSpace, TimeSpace } from "type-library";
 import { WDPCode } from "../dataPrep/src/PCodes";
 import { WDQCode } from "../dataPrep/src/QCodes";
 import { Timeline } from "./Timeline";
@@ -72,7 +72,6 @@ function App() {
       // eventParticipantsAsNetwork: rawNetwork,
       // selectedNetworkNode,
       countriesAndGroupsAsAdjMat,
-      countriesVisibleInNetwork,
       rawCountries,
       bilateralRelations,
       countryHeartMap,
@@ -100,7 +99,6 @@ function App() {
     // "adjMat",
     "countriesAndGroupsAsAdjMat",
     "renderableEventNetworkNodes",
-    "countriesVisibleInNetwork",
     "selectedNetworkNode",
     "countryColorLookup",
     "rawCountries",
@@ -109,6 +107,9 @@ function App() {
   const countryIDs: QCode<CountryID>[] = rawCountries
     ? rawCountries.map((val) => val.item.value)
     : [];
+  useEffect(() => {
+    dataService.buildNetworkRenderProps();
+  }, []);
   useEffect(() => {
     if (countriesAndGroupsAsAdjMat !== undefined) {
       dataService.setNodesFromAdjMat(countriesAndGroupsAsAdjMat, {
@@ -141,14 +142,14 @@ function App() {
         }
         // TODO no any
         // TODO figure out desired behavior when selected is group
-        highlightedNode={selectedCountry as any as NodeID | null}
+        highlightedNode={selectedCountry as any}
         onMouseOver={(id) => {
           dataService.setHoveredNetworkNode(id);
         }}
         onSelectNode={(id) => {
           nodeIsCountry
-            ? dataService.setSelectedCountry(id as any as CountryID)
-            : dataService.setSelectedGeopoliticalGroup(id as any as GroupID);
+            ? dataService.setSelectedCountry(id as any)
+            : dataService.updateNetworkGrouping(id as any);
         }}
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         onMouseLeave={() => {}}
@@ -217,6 +218,7 @@ function App() {
             <select
               onChange={(event) => {
                 console.log(event, event.target.value);
+                // dataService.clearNodes()
                 dataService.setSelectedGeopoliticalGroup(
                   numericalQCodeDummy<GroupID>(
                     event.target.value as (typeof availableGroups)[number]
@@ -231,21 +233,25 @@ function App() {
               ))}
             </select>
           </p>
-          <p>
-            NetworkGrouping:
-            <select
-              // selected={MetaGrouping.TRADE_BLOCS}
-              onChange={(event) => {
-                dataService.setSelectedNetworkGrouping(event.target.value);
-              }}
-            >
-              {Object.keys(MetaGrouping).map((metaGroup) => (
-                <option value={MetaGrouping[metaGroup]}>
-                  {MetaGrouping[metaGroup]}
-                </option>
-              ))}
-            </select>
-          </p>
+          {/* TODO */}
+          {false && (
+            <p>
+              {/* TODO update on change instead of one way */}
+              NetworkGrouping:
+              <select
+                // selected={MetaGrouping.TRADE_BLOCS}
+                onChange={(event) => {
+                  dataService.updateNetworkGrouping(event.target.value as any);
+                }}
+              >
+                {Object.keys(MetaGrouping).map((metaGroup) => (
+                  <option value={MetaGrouping[metaGroup]}>
+                    {MetaGrouping[metaGroup]}
+                  </option>
+                ))}
+              </select>
+            </p>
+          )}
         </p>
       )}
       {/* <LinePlot
@@ -338,52 +344,17 @@ function App() {
             />
           )}
         </div>
-        {
+        {nodes && edges && (
           <Network
             nodes={nodes}
             edges={edges}
             stageSize={NetworkStageSize}
             NodeTemplate={NodeTemplate}
           />
-        }
+        )}
       </div>
       <p />
-      <div>
-        All visible data comes directly from WikiData (that means if theres any
-        categorical inconsistency - blame them! or fix it yourself on wikidata &
-        it will become fixed here too)
-      </div>
-      <div>Known Issues/TODOs:</div>
-      <p>Needs a spinner while data's loading</p>
-      <p>
-        Way Too Slow (~5-6 sec to load basic app), once I add tests I'll be able
-        to easily refactor without fear
-      </p>
-      <p>
-        Network dragging needs improving, flips back to original position
-        briefly when selected on mouse up
-      </p>
-      <p>
-        MouseUp in konva network gets interpreted as select on dragging - need
-        state machine
-      </p>
-      <p>
-        Figure out what to do with non-country entities in network (ignore?)
-      </p>
-      <p>
-        Some founding events are doubled (how to ontologically handle secession
-        states?)
-      </p>
-      <p>Better experience using desktop, TODO make more mobile friendly</p>
-      <p>Network Tooltip (generic konva tooltip)</p>
-      <p>
-        popups stay open in one until manually closed - make all controlled
-        centrally
-      </p>
-      <p>
-        Event Timeline Cluttered, filter helps but not very user friendly yet
-      </p>
-      <p>Need to figure out how to handle overlapping claims</p>
+      {<IssuesAndTODOs />}
     </div>
     //     <PanelGroup direction="vertical">
     //       <Panel
@@ -397,6 +368,53 @@ function App() {
 }
 
 export default App;
+function IssuesAndTODOs(): JSX.Element {
+  return (
+    <>
+      <div>Known Issues/TODOs:</div>
+      <p>
+        Giant bundle size bc site is static - I'd like to have the ability to
+        keep it static, so will likely explore avenues to have dynamic/static
+        data selectable on compile.
+      </p>
+      <p>Needs a spinner while data's loading</p>
+      <p>Webworker for "multithreaded" calculations</p>
+      <p>
+        Way Too Slow (~5-6 sec to load basic app - primarily geojson placement
+        afaict), once I add more tests I'll be able to easily refactor without
+        fear
+      </p>
+      <p>
+        Network dragging needs improving, flips back to original position
+        briefly when selected on mouse up
+      </p>
+      <p>
+        MouseUp in konva network gets interpreted as select on dragging - need
+        state machine
+      </p>
+      <p>
+        Some founding events are doubled (how to ontologically handle secession
+        states?)
+      </p>
+      <p>Using desktop currently best, TODO make more mobile friendly</p>
+      <p>Network Tooltip (generic konva tooltip)</p>
+      <p>
+        popups stay open in one until manually closed - make all controlled
+        centrally
+      </p>
+      <p>
+        Event Timeline Cluttered, filter helps but not very user friendly yet
+      </p>
+      <p>
+        Maybe also have a "live query" backend that grabs the data from wikidata
+        to avoid needing to have own server backend as required? would be very
+        rude to be that noisy to wikidata so idk
+      </p>
+      <p>Need to figure out how to handle overlapping claims</p>
+    </>
+  );
+}
+
 function buildLabel(
   // TODO why does this allow Record<number,string>?
   // qCodesLookup: Record<QCode, string>,
@@ -456,6 +474,11 @@ function Preamble({
   return (
     <div style={{ borderRadius: 10, backgroundColor: "#777777" }}>
       <div>DEMO APP</div>
+      <div>
+        All visible data comes directly from WikiData (that means if theres any
+        categorical inconsistency - blame them! or fix it yourself on wikidata &
+        it will become fixed here too)
+      </div>
       <p>
         Map shows <WD {...{ qCode: "Q6256", name: "countries" }} /> &{" "}
         <WD {...{ qCode: "Q161243", name: "dependent territories" }} /> (

@@ -1,3 +1,13 @@
+investigate key conflicts (uuid?)
+add more lint & prettier rules
+
+Add country outlines gradually?
+deselect on map
+click node on map toggles select
+click text on network toggles select
+show/hide dots
+map label autosize
+
 Web workers for long computations - maybe as opposed to backend? https://blog.logrocket.com/web-workers-react-typescript/ https://medium.com/@hamzazaheer721/using-web-workers-in-typescript-react-8d2926a33154
 yarn recursive
 render period different from singleton

@@ -9,7 +9,7 @@ export function numericalQCode<TNum extends number>(country: {
   return Number.parseInt(country.item.value.replace("Q", "")) as TNum;
 }
 
-export function numericalQCodeDummy<TNum extends number>(
+export function numericalQCodeDummy<TNum extends number = number>(
   value: QCode<TNum>
 ): TNum {
   return Number.parseInt(value.replace("Q", "")) as TNum;

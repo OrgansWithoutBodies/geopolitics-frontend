@@ -14,4 +14,6 @@ export enum WDPCode {
   END_TIME = "P582",
   MEMBER_OF = "P463",
   INCEPTION = "P571",
+  CONTINENT = "P30",
+  APPLIES_TO_PART = "P518",
 }

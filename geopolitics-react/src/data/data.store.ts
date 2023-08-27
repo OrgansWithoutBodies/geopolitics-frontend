@@ -1,6 +1,11 @@
 import { Store, StoreConfig } from "@datorama/akita";
-import { HistoricalEvent, NetworkNode } from "react-konva-components/src";
-import { BrandedNumber, KonvaSpace, NodeID } from "type-library";
+import {
+  GeoJsonMultiPolygon,
+  GeoJsonPolygon,
+  HistoricalEvent,
+  NetworkNode,
+} from "react-konva-components/src";
+import { BrandedNumber, NodeID } from "type-library";
 import { NetworkNodeRenderProps } from "type-library/src";
 import { CountryOutlines } from "../../dataPrep/out/countries";
 import { WDType as WDCountry } from "../../dataPrep/out/countries.data";
@@ -30,10 +35,8 @@ import {
   WDEntryLatLng,
   WDEntryQCode,
 } from "../../dataPrep/src/buildQuery";
-import { themeColors } from "../theme";
 import type { TimeSpace } from "../types";
 import { BlocID } from "./data.query";
-import { numericalQCode } from "./numericalQCode";
 
 export type NodeLookup = Record<NodeID, NetworkNode>;
 export type QCode<TNumber extends number = number> = `Q${TNumber}`;
@@ -58,36 +61,6 @@ export interface MultilateralOrgType extends WDType<GroupID> {
   memberState: WDEntryQCode<CountryID>;
   membershipStatus?: WDEntryQCode<MembershipStatusID>;
 }
-type GeoPolygon = {
-  type: string;
-  features: {
-    type: string;
-    properties: {
-      ADMIN: string;
-      ISO_A3: string;
-    };
-    geometry: {
-      type: "Polygon";
-      coordinates: number[][][];
-    };
-  }[];
-};
-
-type GeoMultiPolygon = {
-  type: string;
-  features: {
-    type: string;
-    properties: {
-      ADMIN: string;
-      ISO_A3: string;
-    };
-    geometry: {
-      type: "MultiPolygon";
-      coordinates: number[][][][];
-    };
-  }[];
-};
-
 export enum MetaGrouping {
   TRADE_BLOCS = "Trade Blocs",
   GEOPOLITICAL_GROUPS = "Geopolitical Groups",
@@ -107,7 +80,7 @@ export interface DataState {
   selectedNetworkGrouping: MetaGrouping;
   // wars: typeof WDWar;
   // warsQCodes: typeof WDWarQCodes;
-  networkNodeRenderProps: Record<NodeID, NetworkNodeRenderProps>;
+  networkNodeRenderProps: Record<NodeID, NetworkNodeRenderProps> | null;
 
   internationalOrgs: Readonly<MultilateralOrgType[]>;
   intergovernmentalOrgs: Readonly<MultilateralOrgType[]>;
@@ -127,7 +100,10 @@ export interface DataState {
     QCode<CountryID>,
     (typeof WDCountryQCodes)[keyof typeof WDCountryQCodes]
   >;
-  countriesOutlines: Record<QCode<CountryID>, GeoMultiPolygon | GeoPolygon>;
+  countriesOutlines: Record<
+    QCode<CountryID>,
+    GeoJsonMultiPolygon | GeoJsonPolygon
+  >;
 }
 
 // TODO persist
@@ -138,23 +114,10 @@ export function createInitialState(): DataState {
     finalDateFilter: null,
     filterYears: { start: null, end: null },
 
-    networkNodeRenderProps: Object.fromEntries(
-      [
-        ...new Set(WDTradeBlocs.map((bloc) => bloc.memberState.value).flat()),
-      ].map((country) => [
-        numericalQCode({ item: { value: country } }) as NodeID,
-        {
-          color: themeColors.R,
-          position: {
-            x: (Math.random() * 10) as KonvaSpace,
-            y: (Math.random() * 10) as KonvaSpace,
-          },
-        },
-      ])
-    ),
+    networkNodeRenderProps: null,
 
     selectedNetworkNode: null,
-    selectedNetworkGrouping: MetaGrouping.INTERGOVERNMENTAL_ORGANIZATIONS,
+    selectedNetworkGrouping: MetaGrouping.TRADE_BLOCS,
     selectedCountry: null,
     selectedGeopoliticalGroup: null,
 

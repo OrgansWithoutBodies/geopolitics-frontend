@@ -3,16 +3,17 @@ import { Query } from "@datorama/akita";
 import {
   BilateralRelation,
   CountryHeartMap,
-  GeoJsonGeometryGeneric,
+  GeoJsonMultiPolygon,
+  GeoJsonPolygon,
   HighlightSpecification,
   adjMatToRawNetwork,
   detectConnectedComponentsFromAdjMat,
   rawNetworkToAdjMat,
 } from "react-konva-components/src";
 import { Observable, combineLatest, debounceTime, map, switchMap } from "rxjs";
-import { KonvaSpace } from "type-library";
 import type {
   HexString,
+  KonvaSpace,
   NetworkNode,
   ObjectAdjacencyMatrix,
   RawNetwork,
@@ -74,8 +75,8 @@ export class DataQuery extends Query<DataState> {
   constructor(protected store: DataStore) {
     super(store);
   }
-  // TODO fully connected subcomponents
   private filterYears = this.select("filterYears");
+  public selectedNetworkNode = this.select("selectedNetworkNode");
   private networkNodeRenderProps = this.select("networkNodeRenderProps").pipe(
     // debounce sorta bandaid measure - avoids updating & breaking dragging state
     // TODO - maybe drag state machine would take care of this? prob useful to just make it its own pkg
@@ -278,7 +279,12 @@ export class DataQuery extends Query<DataState> {
 
   private existingCountries = this.rawCountries.pipe(
     map((countries) => {
+      const seenCountries: Record<QCode<CountryID>, boolean> = {};
       return countries.filter((country) => {
+        if (seenCountries[country.item.value]) {
+          return false;
+        }
+        seenCountries[country.item.value] = true;
         return country.stateEnd !== undefined;
       });
     })
@@ -293,20 +299,16 @@ export class DataQuery extends Query<DataState> {
   //   })
   // );
 
-  // private wars;
   public countries: Observable<
     {
-      geometry: GeoJsonGeometryGeneric;
+      geometry: GeoJsonMultiPolygon | GeoJsonPolygon;
       key: CountryID;
     }[]
   > = combineLatest([this.existingCountries, this.countryOutlines]).pipe(
     map(([countries, countryOutlines]) => {
-      return countries.map((country) => ({
-        key: numericalQCode(country) as CountryID,
-        // TODO no any
-        geometry: countryOutlines[
-          country.item.value
-        ] as any as GeoJsonGeometryGeneric,
+      return countries.map(({ item: { value } }) => ({
+        key: numericalQCodeDummy<CountryID>(value),
+        geometry: countryOutlines[value],
       }));
     })
   );
@@ -421,29 +423,22 @@ export class DataQuery extends Query<DataState> {
         }
       })
     );
-  public blocMemberships: Observable<
+  public groupMemberships: Observable<
     Record<QCode<BlocID>, QCode<CountryID>[]>
   > = this.selectedMetaGroup.pipe(
     map((blocs) => {
       return buildBlocMemberLookup(blocs);
     })
   );
-  // public countriesInSameTradeBloc: Observable<
-  //   ObjectAdjacencyMatrix<`${CountryID}`, 0 | 1>
-  // > = combineLatest([this.blocMemberships]).pipe(
-  //   map(([blocMemberships]) => {
-  //     return calcCountriesInSameGroup(blocMemberships);
-  //   })
-  // );
 
   public countriesAndGroupsAsAdjMat: Observable<
     ObjectAdjacencyMatrix<`${CountryID | BlocID}`, 0 | 1>
-  > = combineLatest([this.blocMemberships]).pipe(
+  > = combineLatest([this.groupMemberships]).pipe(
     map(([blocMemberships]) => {
       return calcCountriesGroupMatrix(blocMemberships);
     })
   );
-  public countriesVisibleInNetwork = this.blocMemberships.pipe(
+  public countriesVisibleInNetwork = this.groupMemberships.pipe(
     map((blocMemberships) => {
       const groupedBlocs = Object.values(blocMemberships);
       const uniqueEntitiesInTradeBlocs = [...new Set(groupedBlocs.flat())];
@@ -451,30 +446,6 @@ export class DataQuery extends Query<DataState> {
       return uniqueEntitiesInTradeBlocs;
     })
   );
-  public selectedNetworkNode = this.select("selectedNetworkNode");
-
-  // when two participants show up within the same event, they have an arrow pointing between them
-  // public eventParticipantsAsNetwork: Observable<RawNetwork<{ id: NodeID }>> =
-  //   this.countrieTradeBloc.pipe(
-  //     map((adjMat) => adjMatToRawNetwork<NodeID>(adjMat))
-  //   );
-  // `QCode${NodeID}`
-
-  // public eventAdjMat: Observable<AdjacencyMatrix> =
-  //   this.eventParticipantsAsNetwork.pipe(
-  //     map((network) => rawNetworkToAdjMat(network)),
-  //     startWith([])
-  //   );
-
-  // public selectedNetworkNodeEventInfo: Observable<InfoPanelDateElement | null> =
-  //   combineLatest([this.selectedNetworkNode, this.agents]).pipe(
-  //     map(([val, agents]) => {
-  //       if (val === null) {
-  //         return null;
-  //       }
-  //       return { title: "Network", desc: `${agents[val].name}` };
-  //     })
-  //   );
   public eventParticipantsAsNetwork: Observable<RawNetwork> =
     this.countriesAndGroupsAsAdjMat.pipe(
       map((objAdjMat) => adjMatToRawNetwork(objAdjMat))
@@ -486,9 +457,13 @@ export class DataQuery extends Query<DataState> {
       })
     );
 
+  // withlatestfrom?
   public renderableEventNetworkNodes: Observable<RenderableNetworkNode[]> =
     combineLatest([this.networkNodesArray, this.networkNodeRenderProps]).pipe(
       map(([nodes, networkNodeRenderProps]) => {
+        if (!networkNodeRenderProps) {
+          return [];
+        }
         return nodes.map((node) => ({
           ...node,
           renderedProps: networkNodeRenderProps[node.id],
@@ -503,8 +478,10 @@ export class DataQuery extends Query<DataState> {
     ]).pipe(
       map(([nodes, { edges }]) => {
         return edges.map((edge) => {
+          // TODO nested find here should be lookup
           const originNode = nodes.find(({ id }) => id === edge.origin);
           const targetNode = nodes.find(({ id }) => id === edge.target);
+
           return {
             ...edge,
             renderedProps: {

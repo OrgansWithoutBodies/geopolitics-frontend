@@ -11,9 +11,17 @@ import type {
   ObjectAdjacencyMatrix,
 } from "type-library/src";
 import { NetworkStageSize } from "../App";
+import { themeColors } from "../theme";
 import { COLORS } from "./COLORS";
-import { DataState, DataStore, dataStore } from "./data.store";
+import { DataState, DataStore, MetaGrouping, dataStore } from "./data.store";
+import { numericalQCodeDummy } from "./numericalQCode";
 
+const metaGroupKeyLookup = {
+  [MetaGrouping.TRADE_BLOCS]: "tradeBlocs",
+  [MetaGrouping.GEOPOLITICAL_GROUPS]: "geopoliticalGroups",
+  [MetaGrouping.INTERGOVERNMENTAL_ORGANIZATIONS]: "intergovernmentalOrgs",
+  [MetaGrouping.INTERNATIONAL_ORGANIZATIONS]: "internationalOrgs",
+} as const;
 export class DataService {
   private unitaryUpdate<TKey extends keyof DataState>(
     key: TKey,
@@ -44,6 +52,31 @@ export class DataService {
     "selectedNetworkGrouping"
   );
 
+  public updateNetworkGrouping(val: DataState["selectedNetworkGrouping"]) {
+    this.setSelectedNetworkGrouping(val);
+    this.buildNetworkRenderProps();
+  }
+
+  public buildNetworkRenderProps() {
+    const dataValue = this.dataStore.getValue();
+
+    const currentSourceData =
+      dataValue[metaGroupKeyLookup[dataValue.selectedNetworkGrouping]];
+    const entries = [
+      ...new Set(
+        currentSourceData.map((entry) =>
+          numericalQCodeDummy(entry.memberState.value)
+        )
+      ),
+    ];
+    const keys = [
+      ...new Set(
+        currentSourceData.map((entry) => numericalQCodeDummy(entry.item.value))
+      ),
+    ];
+    this.buildNodeRenderProps([...keys, ...entries] as any);
+  }
+
   public setFilterEndpoint(endpoint: "start" | "end", val: number | null) {
     this.dataStore.update((state) => {
       return {
@@ -55,6 +88,10 @@ export class DataService {
 
   public recolorNode(id: NodeID, newColor: HexString) {
     this.dataStore.update((state) => {
+      if (!state.networkNodeRenderProps) {
+        return state;
+      }
+
       const mutableNodeLookup = {
         ...state.networkNodeRenderProps,
         [id]: {
@@ -87,7 +124,7 @@ export class DataService {
       repulseFac: 2,
       wallFac: 7,
     });
-
+    //
     placements.forEach((placement, ii) => {
       this.moveNode(keys[ii], {
         x: Math.max(placement.x + 0 * width, 0) as KonvaSpace,
@@ -96,8 +133,30 @@ export class DataService {
     });
   }
 
+  public buildNodeRenderProps(nodes: NodeID[]): void {
+    const basicProps = Object.fromEntries(
+      nodes.map((node) => [
+        node,
+        {
+          color: themeColors.R,
+          position: {
+            x: 0 as KonvaSpace,
+            y: 0 as KonvaSpace,
+          },
+        },
+      ])
+    );
+
+    this.dataStore.update((store) => ({
+      ...store,
+      networkNodeRenderProps: basicProps,
+    }));
+  }
   public moveNode(id: NodeID, newPosition: ObjV2<KonvaSpace>) {
     this.dataStore.update((state) => {
+      if (!state.networkNodeRenderProps) {
+        return state;
+      }
       const mutableNodeLookup = {
         ...state.networkNodeRenderProps,
         [id]: {

@@ -5,7 +5,6 @@ export const COLORS: HexString[] = [
   themeColors.G,
   themeColors.R,
   themeColors.B,
-  // themeColors.Fir,
   themeColors.C,
   themeColors.M,
   themeColors.GC,
@@ -13,7 +12,6 @@ export const COLORS: HexString[] = [
   themeColors.Taupenade,
   themeColors.Wine,
   themeColors.Chocolate,
-  themeColors.Jean,
   themeColors.Crimson,
   themeColors.Grape,
 ];
